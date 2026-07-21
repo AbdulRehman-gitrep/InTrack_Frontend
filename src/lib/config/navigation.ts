@@ -3,7 +3,6 @@ import {
   Users,
   GraduationCap,
   ClipboardList,
-  CalendarDays,
   FileText,
   MessageSquare,
   User,
@@ -46,23 +45,13 @@ export const navigation: NavigationItem[] = [
   },
 
   {
-    title: "Daily Updates",
-    href: "/daily-updates",
-    icon: CalendarDays,
-    roles: [
-      Role.INTERN,
-      Role.MANAGER,
-      Role.BUDDY,
-    ],
-  },
-
-  {
-    title: "Weekly Reports",
-    href: "/weekly-reports",
+    title: "Reports",
+    href: "/reports",
     icon: FileText,
     roles: [
       Role.INTERN,
       Role.MANAGER,
+      Role.BUDDY,
     ],
   },
 

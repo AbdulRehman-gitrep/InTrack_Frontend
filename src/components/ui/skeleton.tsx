@@ -21,18 +21,22 @@ function CardSkeleton({ className }: { className?: string }) {
   )
 }
 
-function UpdateCardSkeleton() {
+function ReportCardSkeleton() {
   return (
     <div className="rounded-xl border bg-card p-5">
-      <div className="flex items-center gap-3">
-        <Skeleton className="size-9 rounded-full" />
-        <div className="space-y-1.5">
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-3 w-48" />
-        </div>
+      <div className="mb-3 flex items-center gap-2">
+        <Skeleton className="h-5 w-40" />
+        <Skeleton className="h-5 w-20 rounded-full" />
       </div>
-      <Skeleton className="mt-4 h-4 w-full" />
-      <Skeleton className="mt-2 h-4 w-3/4" />
+      <div className="mb-2 flex items-center gap-1.5">
+        <Skeleton className="h-3 w-32" />
+      </div>
+      <Skeleton className="mb-3 h-4 w-full" />
+      <Skeleton className="mb-1 h-4 w-3/4" />
+      <div className="flex items-center gap-3 pt-1">
+        <Skeleton className="h-3 w-20" />
+        <Skeleton className="h-3 w-24" />
+      </div>
     </div>
   )
 }
@@ -76,4 +80,4 @@ function TableSkeleton({ rows = 5, cols = 6 }: { rows?: number; cols?: number })
   )
 }
 
-export { Skeleton, CardSkeleton, UpdateCardSkeleton, TableSkeleton }
+export { Skeleton, CardSkeleton, ReportCardSkeleton, TableSkeleton }

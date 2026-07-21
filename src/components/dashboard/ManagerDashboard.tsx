@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CalendarDays, ClipboardCheck, Clock, ListTodo, Users } from "lucide-react"
+import { ClipboardCheck, Clock, FileText, ListTodo, Users } from "lucide-react"
 
 import { Skeleton } from "@/components/ui/skeleton"
 import { StatCard } from "@/components/dashboard/cards/StatCard"
@@ -40,16 +40,12 @@ function InternProgressCard({
   intern,
   tasksCompleted,
   totalTasks,
-  updatesReviewed,
-  totalUpdates,
   reportsReviewed,
   totalReports,
 }: {
   intern: { fullName: string; department: string }
   tasksCompleted: number
   totalTasks: number
-  updatesReviewed: number
-  totalUpdates: number
   reportsReviewed: number
   totalReports: number
 }) {
@@ -79,15 +75,8 @@ function InternProgressCard({
         </div>
         <div className="space-y-1.5">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <CalendarDays className="size-3.5" />
-            Daily Updates Reviewed
-          </div>
-          <ProgressBar value={updatesReviewed} max={totalUpdates} color="bg-amber-500" />
-        </div>
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <ClipboardCheck className="size-3.5" />
-            Weekly Reports Reviewed
+            Reports Reviewed
           </div>
           <ProgressBar value={reportsReviewed} max={totalReports} color="bg-emerald-500" />
         </div>
@@ -122,7 +111,7 @@ function InternProgressCardSkeleton() {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {[0, 1, 2].map((i) => (
+        {[0, 1].map((i) => (
           <div key={i} className="space-y-1.5">
             <Skeleton className="h-3 w-32" />
             <div className="flex items-center gap-2">
@@ -143,8 +132,6 @@ export function ManagerDashboard({ userName = "User" }: ManagerDashboardProps) {
     intern: User
     tasksCompleted: number
     totalTasks: number
-    updatesReviewed: number
-    totalUpdates: number
     reportsReviewed: number
     totalReports: number
   }[]>([])
@@ -152,7 +139,6 @@ export function ManagerDashboard({ userName = "User" }: ManagerDashboardProps) {
   const [stats, setStats] = useState({
     assignedInterns: 0,
     activeTasks: 0,
-    pendingUpdates: 0,
     pendingReports: 0,
   })
 
@@ -185,7 +171,6 @@ export function ManagerDashboard({ userName = "User" }: ManagerDashboardProps) {
               <StatCardSkeleton />
               <StatCardSkeleton />
               <StatCardSkeleton />
-              <StatCardSkeleton />
             </>
           ) : (
             <>
@@ -201,17 +186,6 @@ export function ManagerDashboard({ userName = "User" }: ManagerDashboardProps) {
                 accentBorderClassName="border-t-[3px] border-blue-500"
               />
               <StatCard
-                title="Pending Daily Updates"
-                value={stats.pendingUpdates}
-                description="Awaiting review"
-                icon={CalendarDays}
-                iconColor="text-amber-600"
-                iconBackground="bg-amber-100"
-                valueClassName="text-amber-600"
-                titleClassName="text-amber-600"
-                accentBorderClassName="border-t-[3px] border-amber-500"
-              />
-              <StatCard
                 title="Active Tasks"
                 value={stats.activeTasks}
                 description="Assigned to interns"
@@ -225,13 +199,13 @@ export function ManagerDashboard({ userName = "User" }: ManagerDashboardProps) {
               <StatCard
                 title="Pending Reports"
                 value={stats.pendingReports}
-                description="Weekly reports to review"
-                icon={ClipboardCheck}
-                iconColor="text-red-600"
-                iconBackground="bg-red-100"
-                valueClassName="text-red-600"
-                titleClassName="text-red-600"
-                accentBorderClassName="border-t-[3px] border-red-500"
+                description="Awaiting review"
+                icon={FileText}
+                iconColor="text-amber-600"
+                iconBackground="bg-amber-100"
+                valueClassName="text-amber-600"
+                titleClassName="text-amber-600"
+                accentBorderClassName="border-t-[3px] border-amber-500"
               />
             </>
           )}
@@ -242,7 +216,7 @@ export function ManagerDashboard({ userName = "User" }: ManagerDashboardProps) {
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Intern Progress</h2>
           <p className="text-sm text-slate-500">
-            Task completion, update reviews, and report reviews per intern.
+            Task completion and report reviews per intern.
           </p>
         </div>
         {loading ? (
@@ -259,8 +233,6 @@ export function ManagerDashboard({ userName = "User" }: ManagerDashboardProps) {
                 intern={p.intern}
                 tasksCompleted={p.tasksCompleted}
                 totalTasks={p.totalTasks}
-                updatesReviewed={p.updatesReviewed}
-                totalUpdates={p.totalUpdates}
                 reportsReviewed={p.reportsReviewed}
                 totalReports={p.totalReports}
               />

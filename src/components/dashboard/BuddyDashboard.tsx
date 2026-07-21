@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CalendarDays, MessageSquare, Users } from "lucide-react"
+import { FileText, MessageSquare, Users } from "lucide-react"
 
 import { Skeleton } from "@/components/ui/skeleton"
 import { StatCard } from "@/components/dashboard/cards/StatCard"
@@ -38,13 +38,13 @@ function ProgressBar({ value, max, color }: { value: number; max: number; color:
 
 function InternProgressCard({
   intern,
-  updatesReviewed,
-  totalUpdates,
+  reportsReviewed,
+  totalReports,
   feedbackCount,
 }: {
   intern: { fullName: string; department: string }
-  updatesReviewed: number
-  totalUpdates: number
+  reportsReviewed: number
+  totalReports: number
   feedbackCount: number
 }) {
   return (
@@ -66,17 +66,17 @@ function InternProgressCard({
       <CardContent className="space-y-3">
         <div className="space-y-1.5">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <CalendarDays className="size-3.5" />
-            Daily Updates Reviewed
+            <FileText className="size-3.5" />
+            Reports Reviewed
           </div>
-          <ProgressBar value={updatesReviewed} max={totalUpdates} color="bg-amber-500" />
+          <ProgressBar value={reportsReviewed} max={totalReports} color="bg-amber-500" />
         </div>
         <div className="space-y-1.5">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <MessageSquare className="size-3.5" />
             Feedback Given
           </div>
-          <ProgressBar value={feedbackCount} max={Math.max(totalUpdates, 1)} color="bg-blue-500" />
+          <ProgressBar value={feedbackCount} max={Math.max(totalReports, 1)} color="bg-blue-500" />
         </div>
       </CardContent>
     </Card>
@@ -128,14 +128,14 @@ export function BuddyDashboard({ userName = "User" }: BuddyDashboardProps) {
   const [loading, setLoading] = useState(true)
   const [progress, setProgress] = useState<{
     intern: User
-    updatesReviewed: number
-    totalUpdates: number
+    reportsReviewed: number
+    totalReports: number
     feedbackCount: number
   }[]>([])
 
   const [stats, setStats] = useState({
     assignedInterns: 0,
-    pendingUpdates: 0,
+    pendingReports: 0,
   })
 
   useEffect(() => {
@@ -182,10 +182,10 @@ export function BuddyDashboard({ userName = "User" }: BuddyDashboardProps) {
                 accentBorderClassName="border-t-[3px] border-blue-500"
               />
               <StatCard
-                title="Pending Daily Updates"
-                value={stats.pendingUpdates}
+                title="Pending Reports"
+                value={stats.pendingReports}
                 description="Awaiting review"
-                icon={CalendarDays}
+                icon={FileText}
                 iconColor="text-amber-600"
                 iconBackground="bg-amber-100"
                 valueClassName="text-amber-600"
@@ -212,7 +212,7 @@ export function BuddyDashboard({ userName = "User" }: BuddyDashboardProps) {
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Intern Engagement</h2>
           <p className="text-sm text-slate-500">
-            Daily update reviews and feedback per intern.
+            Report reviews and feedback per intern.
           </p>
         </div>
         {loading ? (
@@ -227,8 +227,8 @@ export function BuddyDashboard({ userName = "User" }: BuddyDashboardProps) {
               <InternProgressCard
                 key={p.intern.id}
                 intern={p.intern}
-                updatesReviewed={p.updatesReviewed}
-                totalUpdates={p.totalUpdates}
+                reportsReviewed={p.reportsReviewed}
+                totalReports={p.totalReports}
                 feedbackCount={p.feedbackCount}
               />
             ))}

@@ -1,18 +1,19 @@
-export interface DailyUpdate {
+export interface Attachment {
   id: string
-  internId: string
-  date: string
-  content: string
-  isReviewed: boolean
-  createdAt: string
+  name: string
+  type: "image" | "pdf" | "video"
+  size: number
+  url?: string
+  thumbnailUrl?: string
+  duration?: string
 }
 
-export interface WeeklyReport {
+export interface Report {
   id: string
   internId: string
-  weekStart: string
-  weekEnd: string
-  content: string
-  isReviewed: boolean
+  title: string
+  description: string
+  attachments: Attachment[]
+  status: "Pending" | "Reviewed"
   createdAt: string
 }

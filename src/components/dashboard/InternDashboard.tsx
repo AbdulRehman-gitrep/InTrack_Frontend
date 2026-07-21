@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState, useEffect } from "react"
-import { CheckCircle, Clock, FileText, ListTodo } from "lucide-react"
+import { CheckCircle, FileText, ListTodo } from "lucide-react"
 
 import { Skeleton } from "@/components/ui/skeleton"
 import { StatCard } from "@/components/dashboard/cards/StatCard"
@@ -151,7 +151,6 @@ export function InternDashboard({ userName = "User" }: InternDashboardProps) {
   const [stats, setStats] = useState({
     myTasks: [] as Task[],
     activeTasks: 0,
-    updatesSubmitted: 0,
     reportsSubmitted: 0,
     feedbackReceived: 0,
   })
@@ -181,7 +180,6 @@ export function InternDashboard({ userName = "User" }: InternDashboardProps) {
               <StatCardSkeleton />
               <StatCardSkeleton />
               <StatCardSkeleton />
-              <StatCardSkeleton />
             </>
           ) : (
             <>
@@ -197,18 +195,7 @@ export function InternDashboard({ userName = "User" }: InternDashboardProps) {
                 accentBorderClassName="border-t-[3px] border-blue-500"
               />
               <StatCard
-                title="Daily Updates"
-                value={stats.updatesSubmitted}
-                description="Submitted"
-                icon={Clock}
-                iconColor="text-emerald-600"
-                iconBackground="bg-emerald-100"
-                valueClassName="text-emerald-600"
-                titleClassName="text-emerald-600"
-                accentBorderClassName="border-t-[3px] border-emerald-500"
-              />
-              <StatCard
-                title="Weekly Reports"
+                title="Reports"
                 value={stats.reportsSubmitted}
                 description="Submitted"
                 icon={FileText}

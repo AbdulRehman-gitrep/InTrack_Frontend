@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar, CheckCircle2, Circle, User } from "lucide-react"
+import { Calendar, CheckCircle2, Circle, Pencil, Trash2 } from "lucide-react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -8,23 +8,28 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 
 import type { User as UserType } from "@/lib/types/user"
 
-interface UpdateCardProps {
+interface ReportCardProps {
   author: UserType
   dateLabel: string
-  title?: string
   content: string
-  isReviewed: boolean
+  status: "Pending" | "Reviewed"
   onToggleReview?: () => void
+  onEdit?: () => void
+  onDelete?: () => void
+  canEdit?: boolean
 }
 
-export function UpdateCard({
+export function ReportCard({
   author,
   dateLabel,
-  title,
   content,
-  isReviewed,
+  status,
   onToggleReview,
-}: UpdateCardProps) {
+  onEdit,
+  onDelete,
+  canEdit,
+}: ReportCardProps) {
+  const isReviewed = status === "Reviewed"
   return (
     <Card className={isReviewed ? "opacity-70" : ""}>
       <CardHeader className="flex flex-row items-center justify-between pb-3">
@@ -45,34 +50,47 @@ export function UpdateCard({
             </p>
           </div>
         </div>
-        {title && (
-          <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
-            {title}
-          </span>
-        )}
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground whitespace-pre-line">
           {content}
         </p>
       </CardContent>
-      {onToggleReview && (
-        <CardFooter className="border-t pt-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onToggleReview}
-            className={isReviewed ? "text-emerald-600" : "text-muted-foreground"}
-          >
-            {isReviewed ? (
-              <CheckCircle2 className="mr-1.5 size-4" />
-            ) : (
-              <Circle className="mr-1.5 size-4" />
+      <CardFooter className="border-t pt-3">
+        <div className="flex w-full items-center justify-between">
+          <div className="flex items-center gap-2">
+            {onToggleReview && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onToggleReview}
+                className={isReviewed ? "text-emerald-600" : "text-muted-foreground"}
+              >
+                {isReviewed ? (
+                  <CheckCircle2 className="mr-1.5 size-4" />
+                ) : (
+                  <Circle className="mr-1.5 size-4" />
+                )}
+                {isReviewed ? "Reviewed" : "Mark as Reviewed"}
+              </Button>
             )}
-            {isReviewed ? "Reviewed" : "Mark as Reviewed"}
-          </Button>
-        </CardFooter>
-      )}
+          </div>
+          <div className="flex items-center gap-1">
+            {canEdit && (
+              <>
+                <Button variant="ghost" size="sm" onClick={onEdit}>
+                  <Pencil className="mr-1.5 size-4" />
+                  Edit
+                </Button>
+                <Button variant="ghost" size="sm" onClick={onDelete}>
+                  <Trash2 className="mr-1.5 size-4" />
+                  Delete
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </CardFooter>
     </Card>
   )
 }
