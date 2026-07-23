@@ -1,5 +1,6 @@
 import { SessionProvider } from "@/lib/context/session"
 import AppShell from "@/components/layout/Appshell";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 export default function DashboardLayout({
   children,
@@ -8,12 +9,14 @@ export default function DashboardLayout({
 }) {
   return (
     <SessionProvider>
-      <AppShell
-        title="Dashboard"
-        titleClassName="text-blue-700"
-      >
-        {children}
-      </AppShell>
+      <ProtectedRoute>
+        <AppShell
+          title="Dashboard"
+          titleClassName="text-blue-700"
+        >
+          {children}
+        </AppShell>
+      </ProtectedRoute>
     </SessionProvider>
   );
 }

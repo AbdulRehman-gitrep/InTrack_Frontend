@@ -1,17 +1,33 @@
-export const apiClient = {
-  async get<T>(): Promise<T> {
-    throw new Error("Backend not connected")
-  },
+import axios from "axios"
 
-  async post<T>(): Promise<T> {
-    throw new Error("Backend not connected")
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api",
+  headers: {
+    "Content-Type": "application/json",
   },
+})
 
-  async patch<T>(): Promise<T> {
-    throw new Error("Backend not connected")
-  },
+api.interceptors.request.use((config) => {
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("accessToken")
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+  }
+  return config
+})
 
-  async delete<T>(): Promise<T> {
-    throw new Error("Backend not connected")
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("accessToken")
+        window.location.href = "/login"
+      }
+    }
+    return Promise.reject(error)
   },
-}
+)
+
+export default api

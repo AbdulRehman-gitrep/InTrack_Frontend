@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Check, Eye, EyeOff, Lock, Mail } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Check, Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react"
 
 import Brand from "@/components/common/Brand"
 import { Button } from "@/components/ui/button"
@@ -9,8 +10,36 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
+import { useSession } from "@/lib/context/session"
+import { authRepository } from "@/lib/repositories/auth.repository"
+
 export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const router = useRouter()
+  const { login } = useSession()
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!email.trim() || !password.trim()) {
+      setError("Please enter your email and password.")
+      return
+    }
+    setSubmitting(true)
+    setError("")
+    try {
+      const { token } = await authRepository.login(email, password)
+      login(token)
+      router.push("/dashboard")
+    } catch {
+      setError("Invalid email or password.")
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <div className="flex min-h-screen w-full">
@@ -74,7 +103,7 @@ export default function LoginForm() {
           </CardHeader>
 
           <CardContent className="p-8 pt-6">
-            <form className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email */}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -85,6 +114,8 @@ export default function LoginForm() {
                     type="email"
                     placeholder="intern@company.com"
                     className="h-10 pl-10"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
               </div>
@@ -99,6 +130,8 @@ export default function LoginForm() {
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     className="h-10 pl-10 pr-10"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                   />
                   <button
                     type="button"
@@ -115,21 +148,18 @@ export default function LoginForm() {
                 </div>
               </div>
 
-              {/* Remember Me */}
-              <label className="flex items-center gap-2 text-sm text-slate-600">
-                <input
-                  type="checkbox"
-                  className="size-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                />
-                Remember me
-              </label>
+              {error && <p className="text-xs text-red-600">{error}</p>}
 
               {/* Submit */}
               <Button
                 type="submit"
+                disabled={submitting}
                 className="h-12 w-full bg-gradient-to-r from-blue-600 to-blue-500 text-base font-semibold shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg hover:from-blue-700 hover:to-blue-600"
               >
-                Sign In
+                {submitting ? (
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                ) : null}
+                {submitting ? "Signing in..." : "Sign In"}
               </Button>
             </form>
 
