@@ -1,95 +1,123 @@
+import api from "@/lib/api/client"
 import { Role } from "@/lib/types/role"
 import type { User, CreateUserPayload, EditUserPayload } from "@/lib/types/user"
-import { mockUsers, getUserById, getUsersByRole } from "@/lib/mock/users"
 
-function cloneUsers(): User[] {
-  return mockUsers.map((u) => ({ ...u }))
+function mapUser(u: Record<string, unknown>): User {
+  return {
+    id: String(u.id),
+    fullName: u.fullName as string,
+    email: u.email as string,
+    role: u.role as Role,
+    department: u.department as string,
+    isActive: u.isActive as boolean,
+    managerId: u.managerId != null ? String(u.managerId) : null,
+    buddyId: u.buddyId != null ? String(u.buddyId) : null,
+    internshipStart: (u.internshipStart as string) ?? null,
+    internshipEnd: (u.internshipEnd as string) ?? null,
+    createdAt: u.createdAt as string,
+  }
 }
 
-let users = cloneUsers()
+interface GetUsersParams {
+  page?: number
+  limit?: number
+  role?: string
+  department?: string
+  status?: string
+  search?: string
+}
 
-export function resetUserRepository() {
-  users = cloneUsers()
+interface PaginatedResult {
+  users: User[]
+  pagination: { page: number; limit: number; total: number; totalPages: number }
 }
 
 export const userRepository = {
-  async getUsers(): Promise<User[]> {
-    return users.map((u) => ({ ...u }))
+  async getUsers(params?: GetUsersParams): Promise<PaginatedResult> {
+    const response = await api.get("/users", { params })
+    const { users, pagination } = response.data.data as {
+      users: Record<string, unknown>[]
+      pagination: { page: number; limit: number; total: number; totalPages: number }
+    }
+    return { users: users.map(mapUser), pagination }
   },
 
   async getUserById(id: string): Promise<User | undefined> {
-    return users.find((u) => u.id === id)
+    const response = await api.get(`/users/${id}`)
+    return mapUser(response.data.data as Record<string, unknown>)
   },
 
   async getUsersByRole(role: Role): Promise<User[]> {
-    return users.filter((u) => u.role === role).map((u) => ({ ...u }))
+    const result = await this.getUsers({ role: role.toUpperCase(), limit: 100 })
+    return result.users
   },
 
   async getInternsByBuddy(buddyId: string): Promise<User[]> {
-    return users.filter((u) => u.role === Role.INTERN && u.buddyId === buddyId)
+    const result = await this.getUsers({ role: "INTERN", limit: 100 })
+    return result.users.filter((u) => u.buddyId === buddyId)
   },
 
   async getInternsByManager(managerId: string): Promise<User[]> {
-    return users.filter((u) => u.role === Role.INTERN && u.managerId === managerId)
+    const result = await this.getUsers({ role: "INTERN", limit: 100 })
+    return result.users.filter((u) => u.managerId === managerId)
   },
 
   async createUser(data: CreateUserPayload): Promise<User> {
-    const newUser: User = {
-      id: String(users.length + 1),
+    const body: Record<string, unknown> = {
       fullName: data.fullName,
       email: data.email,
-      role: data.role,
+      password: data.password,
+      role: data.role.toUpperCase(),
       department: data.department,
-      isActive: true,
-      managerId: null,
-      buddyId: null,
-      internshipStart: data.internshipStart ?? null,
-      internshipEnd: data.internshipEnd ?? null,
-      createdAt: new Date().toISOString().split("T")[0],
     }
-    users.push(newUser)
-    return { ...newUser }
+    if (data.internshipStart) body.internshipStart = data.internshipStart
+    if (data.internshipEnd) body.internshipEnd = data.internshipEnd
+    if (data.managerId) body.managerId = Number(data.managerId)
+    if (data.buddyId) body.buddyId = Number(data.buddyId)
+    const response = await api.post("/users", body)
+    return mapUser(response.data.data as Record<string, unknown>)
   },
 
   async updateUser(id: string, data: EditUserPayload): Promise<User | undefined> {
-    const index = users.findIndex((u) => u.id === id)
-    if (index === -1) return undefined
-    users[index] = {
-      ...users[index],
+    const body: Record<string, unknown> = {
       fullName: data.fullName,
       email: data.email,
       department: data.department,
-      internshipStart: data.internshipStart ?? users[index].internshipStart,
-      internshipEnd: data.internshipEnd ?? users[index].internshipEnd,
     }
-    return { ...users[index] }
+    if (data.internshipStart !== undefined) body.internshipStart = data.internshipStart
+    if (data.internshipEnd !== undefined) body.internshipEnd = data.internshipEnd
+    if (data.managerId !== undefined) body.managerId = Number(data.managerId)
+    if (data.buddyId !== undefined) body.buddyId = Number(data.buddyId)
+    const response = await api.patch(`/users/${id}`, body)
+    return mapUser(response.data.data as Record<string, unknown>)
   },
 
   async toggleUserStatus(id: string): Promise<User | undefined> {
-    const index = users.findIndex((u) => u.id === id)
-    if (index === -1) return undefined
-    users[index] = { ...users[index], isActive: !users[index].isActive }
-    return { ...users[index] }
+    const user = await this.getUserById(id)
+    if (!user) return undefined
+    const status = user.isActive ? "INACTIVE" : "ACTIVE"
+    const response = await api.patch(`/users/${id}/status`, { status })
+    return mapUser(response.data.data as Record<string, unknown>)
   },
 
   async assignRole(id: string, role: Role): Promise<User | undefined> {
-    const index = users.findIndex((u) => u.id === id)
-    if (index === -1) return undefined
-    users[index] = { ...users[index], role }
-    return { ...users[index] }
+    const response = await api.patch(`/users/${id}`, {
+      role: role.toUpperCase(),
+    })
+    return mapUser(response.data.data as Record<string, unknown>)
   },
 
   async assignManager(id: string, managerId: string | null): Promise<User | undefined> {
-    const index = users.findIndex((u) => u.id === id)
-    if (index === -1) return undefined
-    users[index] = { ...users[index], managerId }
-    return { ...users[index] }
+    const response = await api.patch(`/users/${id}`, {
+      managerId: managerId ? Number(managerId) : null,
+    })
+    return mapUser(response.data.data as Record<string, unknown>)
   },
 
   async assignBuddy(id: string, buddyId: string | null): Promise<User | undefined> {
-    const index = users.findIndex((u) => u.id === id)
-    if (index === -1) return undefined
-    users[index] = { ...users[index], buddyId }
-    return { ...users[index] }
+    const response = await api.patch(`/users/${id}`, {
+      buddyId: buddyId ? Number(buddyId) : null,
+    })
+    return mapUser(response.data.data as Record<string, unknown>)
   },
 }

@@ -29,7 +29,7 @@ export default function FeedbackPage() {
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const [loadedFeedback, loadedUsers] = await Promise.all([
+      const [loadedFeedback, { users: loadedUsers }] = await Promise.all([
         feedbackRepository.getFeedback(),
         userRepository.getUsers(),
       ])

@@ -22,6 +22,8 @@ export interface CreateUserPayload {
   department: string
   internshipStart?: string
   internshipEnd?: string
+  managerId?: string
+  buddyId?: string
 }
 
 export interface EditUserPayload {
@@ -30,4 +32,6 @@ export interface EditUserPayload {
   department: string
   internshipStart?: string
   internshipEnd?: string
+  managerId?: string
+  buddyId?: string
 }

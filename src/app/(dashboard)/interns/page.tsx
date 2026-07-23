@@ -20,8 +20,8 @@ export default function InternsPage() {
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const loaded = await userRepository.getUsers()
-      setAllUsers(loaded)
+      const { users } = await userRepository.getUsers()
+      setAllUsers(users)
       setLoading(false)
     }
     load()

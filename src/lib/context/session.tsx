@@ -63,10 +63,15 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback((token: string) => {
     localStorage.setItem("accessToken", token)
-    authRepository.getCurrentUser().then((u) => {
-      setUser(u)
-      setAuthenticated(true)
-    })
+    setAuthenticated(true)
+    setLoading(true)
+    authRepository.getCurrentUser()
+      .then((u) => setUser(u))
+      .catch(() => {
+        localStorage.removeItem("accessToken")
+        setAuthenticated(false)
+      })
+      .finally(() => setLoading(false))
   }, [])
 
   const logout = useCallback(() => {

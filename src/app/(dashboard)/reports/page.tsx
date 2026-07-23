@@ -34,7 +34,7 @@ export default function ReportsPage() {
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const [loadedReports, loadedUsers] = await Promise.all([
+      const [loadedReports, { users: loadedUsers }] = await Promise.all([
         reportRepository.getReports(),
         userRepository.getUsers(),
       ])

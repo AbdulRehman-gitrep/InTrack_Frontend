@@ -96,7 +96,7 @@ export default function TasksPage() {
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const [loadedTasks, loadedUsers] = await Promise.all([
+      const [loadedTasks, { users: loadedUsers }] = await Promise.all([
         taskRepository.getTasks(),
         userRepository.getUsers(),
       ])

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { Eye, EyeOff } from "lucide-react"
 import { Role } from "@/lib/types/role"
 import type { User, CreateUserPayload, EditUserPayload } from "@/lib/types/user"
 
@@ -15,6 +16,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+
+import { userRepository } from "@/lib/repositories/user.repository"
 
 interface UserFormDialogProps {
   open: boolean
@@ -34,7 +37,26 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
   const [department, setDepartment] = useState(user?.department ?? "")
   const [internshipStart, setInternshipStart] = useState(user?.internshipStart ?? "")
   const [internshipEnd, setInternshipEnd] = useState(user?.internshipEnd ?? "")
+  const [managerId, setManagerId] = useState(user?.managerId ?? "")
+  const [buddyId, setBuddyId] = useState(user?.buddyId ?? "")
+  const [showPassword, setShowPassword] = useState(false)
+  const [managers, setManagers] = useState<User[]>([])
+  const [buddies, setBuddies] = useState<User[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const isIntern = role === Role.INTERN
+
+  useEffect(() => {
+    if (open && isIntern) {
+      Promise.all([
+        userRepository.getUsersByRole(Role.MANAGER),
+        userRepository.getUsersByRole(Role.BUDDY),
+      ]).then(([m, b]) => {
+        setManagers(m)
+        setBuddies(b)
+      })
+    }
+  }, [open, isIntern])
 
   function validate(): boolean {
     const next: Record<string, string> = {}
@@ -44,40 +66,50 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
     if (!isEditing && !password) next.password = "Password is required."
     else if (!isEditing && password.length < 6) next.password = "Password must be at least 6 characters."
     if (!department.trim()) next.department = "Department is required."
-    if (internshipStart && internshipEnd && internshipEnd < internshipStart) {
+    if (isIntern && internshipStart && internshipEnd && internshipEnd < internshipStart) {
       next.internshipEnd = "End date must be after start date."
     }
     setErrors(next)
     return Object.keys(next).length === 0
   }
 
+  function buildPayload() {
+    const internFields = isIntern
+      ? {
+          internshipStart: internshipStart || undefined,
+          internshipEnd: internshipEnd || undefined,
+          managerId: managerId || undefined,
+          buddyId: buddyId || undefined,
+        }
+      : {}
+
+    if (isEditing) {
+      return {
+        fullName: fullName.trim(),
+        email: email.trim(),
+        department: department.trim(),
+        ...internFields,
+      } as EditUserPayload
+    }
+    return {
+      fullName: fullName.trim(),
+      email: email.trim(),
+      password,
+      role,
+      department: department.trim(),
+      ...internFields,
+    } as CreateUserPayload
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!validate()) return
-    if (isEditing) {
-      onSave({
-        fullName: fullName.trim(),
-        email: email.trim(),
-        department: department.trim(),
-        internshipStart: internshipStart || undefined,
-        internshipEnd: internshipEnd || undefined,
-      } as EditUserPayload)
-    } else {
-      onSave({
-        fullName: fullName.trim(),
-        email: email.trim(),
-        password,
-        role,
-        department: department.trim(),
-        internshipStart: internshipStart || undefined,
-        internshipEnd: internshipEnd || undefined,
-      } as CreateUserPayload)
-    }
+    onSave(buildPayload())
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Edit User" : "Create User"}</DialogTitle>
           <DialogDescription>
@@ -116,12 +148,22 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
           {!isEditing && (
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((p) => !p)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
               {errors.password && (
                 <p className="text-xs text-red-600">{errors.password}</p>
               )}
@@ -146,39 +188,86 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
 
           <div className="space-y-2">
             <Label htmlFor="department">Department</Label>
-            <Input
+            <select
               id="department"
               value={department}
               onChange={(e) => setDepartment(e.target.value)}
-            />
+              className="flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="">Select Department</option>
+              <option value="Software Engineering">Software Engineering</option>
+              <option value="AI/ML">AI/ML</option>
+              <option value="Data Engineering">Data Engineering</option>
+              <option value="QA">QA</option>
+              <option value="Business Analyst">Business Analyst</option>
+            </select>
             {errors.department && (
               <p className="text-xs text-red-600">{errors.department}</p>
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="internshipStart">Start Date</Label>
-              <Input
-                id="internshipStart"
-                type="date"
-                value={internshipStart}
-                onChange={(e) => setInternshipStart(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="internshipEnd">End Date</Label>
-              <Input
-                id="internshipEnd"
-                type="date"
-                value={internshipEnd}
-                onChange={(e) => setInternshipEnd(e.target.value)}
-              />
-              {errors.internshipEnd && (
-                <p className="text-xs text-red-600">{errors.internshipEnd}</p>
-              )}
-            </div>
-          </div>
+          {isIntern && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="internshipStart">Internship Start Date</Label>
+                  <Input
+                    id="internshipStart"
+                    type="date"
+                    value={internshipStart}
+                    onChange={(e) => setInternshipStart(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="internshipEnd">Internship End Date</Label>
+                  <Input
+                    id="internshipEnd"
+                    type="date"
+                    value={internshipEnd}
+                    onChange={(e) => setInternshipEnd(e.target.value)}
+                  />
+                  {errors.internshipEnd && (
+                    <p className="text-xs text-red-600">{errors.internshipEnd}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="managerId">Manager</Label>
+                  <select
+                    id="managerId"
+                    value={managerId}
+                    onChange={(e) => setManagerId(e.target.value)}
+                    className="flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    <option value="">Select Manager</option>
+                    {managers.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.fullName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="buddyId">Buddy</Label>
+                  <select
+                    id="buddyId"
+                    value={buddyId}
+                    onChange={(e) => setBuddyId(e.target.value)}
+                    className="flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    <option value="">Select Buddy</option>
+                    {buddies.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.fullName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </>
+          )}
 
           <DialogFooter>
             <Button type="submit">{isEditing ? "Save Changes" : "Create User"}</Button>
