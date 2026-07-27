@@ -67,7 +67,7 @@ export const navigation: NavigationItem[] = [
     title: "Activity",
     href: "/activity",
     icon: Clock,
-    roles: [Role.ADMIN, Role.MANAGER, Role.BUDDY, Role.INTERN],
+    roles: [Role.ADMIN, Role.MANAGER],
   },
 
   {
