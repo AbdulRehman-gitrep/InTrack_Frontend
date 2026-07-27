@@ -15,6 +15,8 @@ const PLACEHOLDER_USER: User = {
   isActive: false,
   managerId: null,
   buddyId: null,
+  managerName: null,
+  buddyName: null,
   internshipStart: null,
   internshipEnd: null,
   createdAt: "",

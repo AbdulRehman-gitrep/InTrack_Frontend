@@ -75,6 +75,7 @@ export default function InternsPage() {
           users={filtered}
           role={user.role}
           onEdit={() => {}}
+          onDelete={() => {}}
           onToggleActive={() => {}}
           onAssignRole={() => {}}
           onAssignManager={() => {}}

@@ -25,7 +25,7 @@ export default function MobileSidebar({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="left"
-        className="w-[260px] p-0 h-full bg-sidebar"
+        className="w-[260px] p-0 h-dvh overflow-hidden bg-sidebar"
         showCloseButton={false}
       >
         <Sidebar />

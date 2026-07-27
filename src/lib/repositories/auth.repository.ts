@@ -19,6 +19,8 @@ function mapSessionUser(u: Record<string, unknown>): User {
     isActive: u.isActive as boolean,
     managerId: u.managerId != null ? String(u.managerId) : null,
     buddyId: u.buddyId != null ? String(u.buddyId) : null,
+    managerName: (u.managerName as string) ?? null,
+    buddyName: (u.buddyName as string) ?? null,
     internshipStart: (u.internshipStart as string) ?? null,
     internshipEnd: (u.internshipEnd as string) ?? null,
     createdAt: u.createdAt as string,
