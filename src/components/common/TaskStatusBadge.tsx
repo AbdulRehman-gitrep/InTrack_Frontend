@@ -1,27 +1,22 @@
 import { cn } from "@/lib/utils"
-
-type TaskStatus = "assigned" | "in_progress" | "completed" | "pending"
+import type { TaskStatus } from "@/lib/types/task"
 
 interface TaskStatusBadgeProps {
   status: TaskStatus
 }
 
 const statusConfig: Record<TaskStatus, { label: string; className: string }> = {
-  assigned: {
-    label: "Assigned",
+  PENDING: {
+    label: "Pending",
+    className: "bg-gray-100 text-gray-700",
+  },
+  IN_PROGRESS: {
+    label: "In Progress",
     className: "bg-blue-100 text-blue-700",
   },
-  in_progress: {
-    label: "In Progress",
-    className: "bg-yellow-100 text-yellow-700",
-  },
-  completed: {
+  COMPLETED: {
     label: "Completed",
     className: "bg-green-100 text-green-700",
-  },
-  pending: {
-    label: "Pending",
-    className: "bg-red-100 text-red-700",
   },
 }
 

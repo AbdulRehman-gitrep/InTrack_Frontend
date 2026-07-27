@@ -1,84 +1,79 @@
-import { Role } from "@/lib/types/role"
-import type { Attachment, Report } from "@/lib/types/update"
-import type { CreateReportDto } from "@/lib/dto/create-report.dto"
-import { mockReports } from "@/lib/mock/reports"
-import { getUsersByRole } from "@/lib/mock/users"
+import api from "@/lib/api/client"
+import type { Report, PaginatedReports } from "@/lib/types/report"
 
-let reports = mockReports.map((r) => ({ ...r, attachments: r.attachments.map((a) => ({ ...a })) }))
-
-export function resetReportRepository() {
-  reports = mockReports.map((r) => ({ ...r, attachments: r.attachments.map((a) => ({ ...a })) }))
+function mapReport(r: Record<string, unknown>): Report {
+  return {
+    id: r.id as number,
+    title: r.title as string,
+    description: r.description as string,
+    status: r.status as "PENDING" | "REVIEWED",
+    internId: (r.internId as number) ?? null,
+    internName: (r.internName as string) ?? null,
+    attachments: ((r.attachments as Record<string, unknown>[]) ?? []).map((a) => ({
+      id: a.id as number,
+      fileName: a.fileName as string,
+      fileType: a.fileType as string,
+      fileUrl: a.fileUrl as string,
+      publicId: a.publicId as string,
+      createdAt: a.createdAt as string,
+    })),
+    createdAt: r.createdAt as string,
+  }
 }
 
 export const reportRepository = {
-  async getReports(): Promise<Report[]> {
-    return reports.map((r) => ({ ...r, attachments: r.attachments.map((a) => ({ ...a })) }))
-  },
-
-  async getReportsForIntern(internId: string): Promise<Report[]> {
-    return reports
-      .filter((r) => r.internId === internId)
-      .map((r) => ({ ...r, attachments: r.attachments.map((a) => ({ ...a })) }))
-  },
-
-  async getReportsForReviewer(userId: string): Promise<Report[]> {
-    const internIds = getUsersByRole(Role.INTERN)
-      .filter((u) => u.managerId === userId || u.buddyId === userId)
-      .map((u) => u.id)
-    return reports
-      .filter((r) => internIds.includes(r.internId))
-      .map((r) => ({ ...r, attachments: r.attachments.map((a) => ({ ...a })) }))
-  },
-
-  async getReportsForManager(managerId: string): Promise<Report[]> {
-    const internIds = getUsersByRole(Role.INTERN)
-      .filter((u) => u.managerId === managerId)
-      .map((u) => u.id)
-    return reports
-      .filter((r) => internIds.includes(r.internId))
-      .map((r) => ({ ...r, attachments: r.attachments.map((a) => ({ ...a })) }))
-  },
-
-  async submitReport(data: CreateReportDto): Promise<Report> {
-    const newReport: Report = {
-      id: String(Date.now()),
-      internId: data.internId,
-      title: data.title,
-      description: data.description,
-      attachments: data.attachments.map((a) => ({ ...a })),
-      status: "Pending",
-      createdAt: new Date().toISOString(),
+  async getReports(params?: Record<string, string | number | undefined>): Promise<PaginatedReports> {
+    const response = await api.get("/reports", { params })
+    const { reports, pagination } = response.data.data as {
+      reports: Record<string, unknown>[]
+      pagination: { page: number; limit: number; total: number; totalPages: number }
     }
-    reports.push(newReport)
-    return { ...newReport, attachments: newReport.attachments.map((a) => ({ ...a })) }
+    return { reports: reports.map(mapReport), pagination }
   },
 
-  async updateReport(id: string, data: { title: string; description: string; attachments: Attachment[] }): Promise<Report | undefined> {
-    const index = reports.findIndex((r) => r.id === id)
-    if (index === -1) return undefined
-    reports[index] = {
-      ...reports[index],
-      title: data.title,
-      description: data.description,
-      attachments: data.attachments.map((a) => ({ ...a })),
+  async getReportById(id: number): Promise<Report> {
+    const response = await api.get(`/reports/${id}`)
+    return mapReport(response.data.data as Record<string, unknown>)
+  },
+
+  async createReport(data: { title: string; description: string; files: File[] }): Promise<Report> {
+    const formData = new FormData()
+    formData.append("title", data.title)
+    formData.append("description", data.description)
+    for (const file of data.files) {
+      formData.append("files", file)
     }
-    return { ...reports[index], attachments: reports[index].attachments.map((a) => ({ ...a })) }
+    const response = await api.post("/reports", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+    return mapReport(response.data.data as Record<string, unknown>)
   },
 
-  async deleteReport(id: string): Promise<boolean> {
-    const index = reports.findIndex((r) => r.id === id)
-    if (index === -1) return false
-    reports.splice(index, 1)
-    return true
-  },
-
-  async markReportReviewed(id: string): Promise<Report | undefined> {
-    const index = reports.findIndex((r) => r.id === id)
-    if (index === -1) return undefined
-    reports[index] = {
-      ...reports[index],
-      status: "Reviewed",
+  async updateReport(id: number, data: { title?: string; description?: string; files?: File[] }): Promise<Report> {
+    const formData = new FormData()
+    if (data.title !== undefined) formData.append("title", data.title)
+    if (data.description !== undefined) formData.append("description", data.description)
+    if (data.files) {
+      for (const file of data.files) {
+        formData.append("files", file)
+      }
     }
-    return { ...reports[index], attachments: reports[index].attachments.map((a) => ({ ...a })) }
+    const response = await api.patch(`/reports/${id}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+    return mapReport(response.data.data as Record<string, unknown>)
+  },
+
+  async deleteReport(id: number): Promise<void> {
+    await api.delete(`/reports/${id}`)
+  },
+
+  async markReportReviewed(id: number): Promise<Report> {
+    const response = await api.patch(`/reports/${id}/review`)
+    return mapReport(response.data.data as Record<string, unknown>)
+  },
+
+  async deleteAttachment(reportId: number, publicId: string): Promise<void> {
+    await api.delete(`/reports/${reportId}/attachments/${publicId}`)
   },
 }

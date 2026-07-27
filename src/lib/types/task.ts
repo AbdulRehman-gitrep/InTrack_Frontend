@@ -1,12 +1,28 @@
-export type TaskStatus = "assigned" | "in_progress" | "completed" | "pending"
+export type TaskStatus = "PENDING" | "IN_PROGRESS" | "COMPLETED"
 
 export interface Task {
-  id: string
+  id: number
   title: string
-  description: string
+  description: string | null
   status: TaskStatus
-  assigneeId: string
-  createdBy: string
-  createdAt: string
   dueDate: string
+  createdAt: string
+  internId: number | null
+  internName: string | null
+  managerId: number | null
+  managerName: string | null
+}
+
+export interface CreateTaskPayload {
+  title: string
+  description?: string
+  internId: number
+  dueDate: string
+}
+
+export interface UpdateTaskPayload {
+  title?: string
+  description?: string
+  internId?: number
+  dueDate?: string
 }

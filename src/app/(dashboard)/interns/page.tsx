@@ -20,20 +20,21 @@ export default function InternsPage() {
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const { users } = await userRepository.getUsers()
+      const params: Record<string, string | number> = { role: Role.INTERN.toUpperCase() }
+      if (user.role === Role.MANAGER) {
+        params.managerId = Number(user.id)
+      }
+      if (user.role === Role.BUDDY) {
+        params.buddyId = Number(user.id)
+      }
+      const { users } = await userRepository.getUsers(params)
       setAllUsers(users)
       setLoading(false)
     }
     load()
-  }, [])
+  }, [user.id, user.role])
 
-  const interns = useMemo<User[]>(() => {
-    const all = allUsers.filter((u) => u.role === Role.INTERN)
-    if (user.role === Role.BUDDY) {
-      return all.filter((u) => u.buddyId === user.id)
-    }
-    return all
-  }, [allUsers, user.id, user.role])
+  const interns = allUsers
 
   const filtered = useMemo(
     () =>

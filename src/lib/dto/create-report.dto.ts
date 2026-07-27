@@ -1,8 +1,5 @@
-import type { Attachment } from "@/lib/types/update"
-
-export interface CreateReportDto {
-  internId: string
+export interface CreateReportPayload {
   title: string
   description: string
-  attachments: Attachment[]
+  files: File[]
 }

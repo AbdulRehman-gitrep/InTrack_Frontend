@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import { Plus } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -12,7 +12,7 @@ import { EmptyReportsState } from "@/components/reports/EmptyReportsState"
 
 import { useSession } from "@/lib/context/session"
 
-import type { Attachment, Report } from "@/lib/types/update"
+import type { Report } from "@/lib/types/report"
 import type { User } from "@/lib/types/user"
 import { Role } from "@/lib/types/role"
 import { reportRepository } from "@/lib/repositories/report.repository"
@@ -38,7 +38,7 @@ export default function ReportsPage() {
         reportRepository.getReports(),
         userRepository.getUsers(),
       ])
-      setReports(loadedReports)
+      setReports(loadedReports.reports)
       setAllUsers(loadedUsers)
       setLoading(false)
     }
@@ -56,23 +56,14 @@ export default function ReportsPage() {
     let filtered = [...reports]
 
     if (isIntern) {
-      filtered = filtered.filter((r) => r.internId === user.id)
-    } else {
-      const internIds = allUsers
-        .filter(
-          (u) =>
-            u.role === Role.INTERN &&
-            (u.managerId === user.id || u.buddyId === user.id),
-        )
-        .map((u) => u.id)
-      filtered = filtered.filter((r) => internIds.includes(r.internId))
+      filtered = filtered.filter((r) => r.internId === Number(user.id))
     }
 
-    if (isManager && filterIntern !== "all") {
-      filtered = filtered.filter((r) => r.internId === filterIntern)
+    if ((isManager || user.role === Role.BUDDY) && filterIntern !== "all") {
+      filtered = filtered.filter((r) => r.internId === Number(filterIntern))
     }
 
-    if (isManager && searchDate) {
+    if (searchDate) {
       filtered = filtered.filter(
         (r) => r.createdAt.split("T")[0] === searchDate,
       )
@@ -82,43 +73,54 @@ export default function ReportsPage() {
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
-  }, [reports, allUsers, user.id, isIntern, isManager, filterIntern, searchDate])
+  }, [reports, user.id, isIntern, isManager, filterIntern, searchDate])
 
-  async function handleCreateReport(data: { title: string; description: string; attachments: Attachment[] }) {
-    const created = await reportRepository.submitReport({
-      internId: user.id,
+  const handleCreateReport = useCallback(async (data: { title: string; description: string; files: File[] }) => {
+    const created = await reportRepository.createReport({
       title: data.title,
       description: data.description,
-      attachments: data.attachments,
+      files: data.files,
     })
     setReports((prev) => [created, ...prev])
     setShowForm(false)
-  }
+  }, [])
 
-  async function handleUpdateReport(data: { title: string; description: string; attachments: Attachment[] }) {
+  const handleUpdateReport = useCallback(async (data: { title: string; description: string; files: File[] }) => {
     if (!editingReport) return
-    const updated = await reportRepository.updateReport(editingReport.id, data)
-    if (updated) {
-      setReports((prev) =>
-        prev.map((r) => (r.id === editingReport.id ? updated : r)),
-      )
-    }
+    const updated = await reportRepository.updateReport(editingReport.id, {
+      title: data.title,
+      description: data.description,
+      files: data.files.length > 0 ? data.files : undefined,
+    })
+    setReports((prev) =>
+      prev.map((r) => (r.id === editingReport.id ? updated : r)),
+    )
     setEditingReport(null)
-  }
+  }, [editingReport])
 
-  async function handleDelete(reportId: string) {
+  const handleDeleteAttachment = useCallback(async (publicId: string) => {
+    if (!editingReport) return
+    await reportRepository.deleteAttachment(editingReport.id, publicId)
+    setEditingReport((prev) => {
+      if (!prev) return null
+      return {
+        ...prev,
+        attachments: prev.attachments.filter((a) => a.publicId !== publicId),
+      }
+    })
+  }, [editingReport])
+
+  const handleDelete = useCallback(async (reportId: number) => {
     await reportRepository.deleteReport(reportId)
     setReports((prev) => prev.filter((r) => r.id !== reportId))
-  }
+  }, [])
 
-  async function handleToggleReview(reportId: string) {
+  const handleToggleReview = useCallback(async (reportId: number) => {
     const updated = await reportRepository.markReportReviewed(reportId)
-    if (updated) {
-      setReports((prev) =>
-        prev.map((r) => (r.id === reportId ? updated : r)),
-      )
-    }
-  }
+    setReports((prev) =>
+      prev.map((r) => (r.id === reportId ? updated : r)),
+    )
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -133,7 +135,7 @@ export default function ReportsPage() {
                 : "View reports from your interns."}
           </p>
         </div>
-        {isIntern && !showForm && (
+        {isIntern && !showForm && !editingReport && visibleReports.length > 0 && (
           <Button onClick={() => setShowForm(true)}>
             <Plus className="mr-1.5 size-4" />
             New Report
@@ -143,16 +145,7 @@ export default function ReportsPage() {
 
       {isIntern && showForm && (
         <ReportForm
-          onSubmit={async (data) => {
-            const created = await reportRepository.submitReport({
-              internId: user.id,
-              title: data.title,
-              description: data.description,
-              attachments: data.attachments,
-            })
-            setReports((prev) => [created, ...prev])
-            setShowForm(false)
-          }}
+          onSubmit={handleCreateReport}
           onCancel={() => setShowForm(false)}
         />
       )}
@@ -161,23 +154,16 @@ export default function ReportsPage() {
         <ReportForm
           initialTitle={editingReport.title}
           initialDescription={editingReport.description}
-          initialAttachments={editingReport.attachments}
-          onSubmit={async (data) => {
-            const updated = await reportRepository.updateReport(editingReport.id, data)
-            if (updated) {
-              setReports((prev) =>
-                prev.map((r) => (r.id === editingReport.id ? updated : r)),
-              )
-            }
-            setEditingReport(null)
-          }}
+          existingAttachments={editingReport.attachments}
+          onSubmit={handleUpdateReport}
+          onDeleteAttachment={handleDeleteAttachment}
           onCancel={() => setEditingReport(null)}
           submitLabel="Save Changes"
           title="Edit Report"
         />
       )}
 
-      {isManager && (
+      {(isManager || user.role === Role.BUDDY) && (
         <div className="flex flex-wrap gap-4">
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">
@@ -190,7 +176,7 @@ export default function ReportsPage() {
             >
               <option value="all">All Interns</option>
               {internUsers
-                .filter((u) => u.managerId === user.id)
+                .filter((u) => u.managerId === user.id || u.buddyId === user.id)
                 .map((intern) => (
                   <option key={intern.id} value={intern.id}>
                     {intern.fullName}
@@ -224,8 +210,13 @@ export default function ReportsPage() {
             <ReportCard
               key={report.id}
               report={report}
-              authorName={userMap.get(report.internId)?.fullName ?? "Unknown"}
+              authorName={userMap.get(String(report.internId!))?.fullName ?? "Unknown"}
               onView={() => setViewingReport(report)}
+              onEdit={isIntern && report.status === "PENDING" ? () => {
+                setEditingReport(report)
+                setShowForm(false)
+              } : undefined}
+              onDelete={isIntern && report.status === "PENDING" ? () => handleDelete(report.id) : undefined}
             />
           ))
         ) : (
@@ -237,12 +228,29 @@ export default function ReportsPage() {
       </div>
 
       <ReportDetailsModal
-        report={viewingReport}
+        report={viewingReport ? {
+          id: String(viewingReport.id),
+          internId: String(viewingReport.internId ?? ""),
+          title: viewingReport.title,
+          description: viewingReport.description,
+          status: viewingReport.status === "REVIEWED" ? "Reviewed" as const : "Pending" as const,
+          createdAt: viewingReport.createdAt,
+          attachments: viewingReport.attachments.map((a) => ({
+            id: String(a.id),
+            name: a.fileName,
+            type: (a.fileType.startsWith("image/") ? "image" : a.fileType === "application/pdf" ? "pdf" : "video") as "image" | "pdf" | "video",
+            size: 0,
+            url: a.fileUrl,
+          })),
+        } : null}
         open={!!viewingReport}
         onOpenChange={(open) => { if (!open) setViewingReport(null) }}
         onToggleReview={
           isManager && viewingReport
-            ? () => handleToggleReview(viewingReport.id)
+            ? () => {
+                handleToggleReview(viewingReport.id)
+                setViewingReport(null)
+              }
             : undefined
         }
         canReview={isManager}

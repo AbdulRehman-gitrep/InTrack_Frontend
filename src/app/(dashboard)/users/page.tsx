@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { TableSkeleton } from "@/components/ui/skeleton"
 import { AssignRelationshipSheet } from "@/components/users/AssignRelationshipSheet"
 import { AssignRoleSheet } from "@/components/users/AssignRoleSheet"
+import { DeleteUserDialog } from "@/components/users/DeleteUserDialog"
 import { UserFormDialog } from "@/components/users/UserFormDialog"
 import { UsersTable } from "@/components/users/UsersTable"
 
@@ -46,6 +47,8 @@ export default function UsersPage() {
 
   const [userFormOpen, setUserFormOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [formError, setFormError] = useState("")
+  const [deleteUser, setDeleteUser] = useState<User | null>(null)
   const [roleSheetUser, setRoleSheetUser] = useState<User | null>(null)
   const [managerSheetUser, setManagerSheetUser] = useState<User | null>(null)
   const [buddySheetUser, setBuddySheetUser] = useState<User | null>(null)
@@ -77,11 +80,21 @@ export default function UsersPage() {
   }, [search])
 
   async function handleCreate(data: CreateUserPayload | EditUserPayload) {
-    const payload = data as CreateUserPayload
-    const created = await userRepository.createUser(payload)
-    setUsers((prev) => [...prev, created])
-    setTotal((prev) => prev + 1)
-    setUserFormOpen(false)
+    try {
+      const payload = data as CreateUserPayload
+      const created = await userRepository.createUser(payload)
+      setUsers((prev) => [...prev, created])
+      setTotal((prev) => prev + 1)
+      setFormError("")
+      setUserFormOpen(false)
+    } catch (e: unknown) {
+      const msg =
+        e && typeof e === "object" && "response" in e
+          ? (e as { response: { data: { message: string } } }).response.data
+              ?.message ?? "Failed to create user"
+          : "Failed to create user"
+      setFormError(Array.isArray(msg) ? msg.join(", ") : msg)
+    }
   }
 
   async function handleEdit(data: CreateUserPayload | EditUserPayload) {
@@ -104,6 +117,17 @@ export default function UsersPage() {
         prev.map((u) => (u.id === userId ? updated : u)),
       )
     }
+  }
+
+  function handleDeleteUser(user: User) {
+    setDeleteUser(user)
+  }
+
+  async function handleDeleteConfirm(user: User) {
+    await userRepository.deleteUser(user.id)
+    setUsers((prev) => prev.filter((u) => u.id !== user.id))
+    setTotal((prev) => prev - 1)
+    setDeleteUser(null)
   }
 
   async function handleAssignRole(userId: string, role: Role) {
@@ -207,6 +231,7 @@ export default function UsersPage() {
               setUserFormOpen(true)
             }}
             onToggleActive={handleToggleActive}
+            onDelete={handleDeleteUser}
             onAssignRole={setRoleSheetUser}
             onAssignManager={setManagerSheetUser}
             onAssignBuddy={setBuddySheetUser}
@@ -246,10 +271,11 @@ export default function UsersPage() {
         open={userFormOpen}
         onOpenChange={(open) => {
           setUserFormOpen(open)
-          if (!open) setEditingUser(null)
+          if (!open) { setEditingUser(null); setFormError("") }
         }}
         user={editingUser}
         onSave={editingUser ? handleEdit : handleCreate}
+        error={formError}
       />
 
       {roleSheetUser && (
@@ -280,6 +306,13 @@ export default function UsersPage() {
           onAssign={handleAssignBuddy}
         />
       )}
+
+      <DeleteUserDialog
+        user={deleteUser}
+        open={!!deleteUser}
+        onOpenChange={(open) => { if (!open) setDeleteUser(null) }}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   )
 }

@@ -1,7 +1,14 @@
 export interface Feedback {
-  id: string
-  fromId: string
-  toId: string
+  id: number
   content: string
   createdAt: string
+  fromId: number | null
+  fromName: string | null
+  toId: number | null
+  toName: string | null
+}
+
+export interface CreateFeedbackPayload {
+  toId: number
+  content: string
 }

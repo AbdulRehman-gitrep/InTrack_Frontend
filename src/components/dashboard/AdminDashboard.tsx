@@ -10,12 +10,9 @@ import { DashboardSection } from "@/components/dashboard/layout/DashboardSection
 import { DashboardHeader } from "@/components/dashboard/layout/DashboardHeader"
 import { StatsGrid } from "@/components/dashboard/layout/StatsGrid"
 import { dashboardRepository } from "@/lib/repositories/dashboard.repository"
+import { useSession } from "@/lib/context/session"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-
-interface AdminDashboardProps {
-  userName?: string
-}
 
 const DEPARTMENT_CONFIG: Record<string, { icon: LucideIcon; iconColor: string; iconBackground: string; titleClassName: string; accentBorderClassName: string }> = {
   "Software Engineering": { icon: Code2, iconColor: "text-blue-600", iconBackground: "bg-blue-100", titleClassName: "text-blue-600", accentBorderClassName: "border-t-[3px] border-blue-500" },
@@ -40,7 +37,9 @@ function StatCardSkeleton() {
   )
 }
 
-export function AdminDashboard({ userName = "User" }: AdminDashboardProps) {
+export function AdminDashboard({ userName: _userName }: { userName?: string }) {
+  const { user } = useSession()
+  const displayName = _userName || user.fullName || "User"
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ totalUsers: 0, activeInterns: 0, departmentStats: [] as { title: string; count: number }[] })
 
@@ -57,7 +56,7 @@ export function AdminDashboard({ userName = "User" }: AdminDashboardProps) {
   return (
     <div className="space-y-8">
       <DashboardHeader
-        userName={userName}
+        userName={displayName}
         tagline="Here&apos;s what is happening across the internship portal today."
         label="System Overview"
       />
@@ -72,7 +71,7 @@ export function AdminDashboard({ userName = "User" }: AdminDashboardProps) {
           ) : (
             <>
               <StatCard
-                title="Users"
+                title="Total Users"
                 value={stats.totalUsers}
                 description="Registered users"
                 icon={Users}
@@ -83,7 +82,7 @@ export function AdminDashboard({ userName = "User" }: AdminDashboardProps) {
                 accentBorderClassName="border-t-[3px] border-blue-500"
               />
               <StatCard
-                title="Interns"
+                title="Active Interns"
                 value={stats.activeInterns}
                 description="Active interns"
                 icon={GraduationCap}

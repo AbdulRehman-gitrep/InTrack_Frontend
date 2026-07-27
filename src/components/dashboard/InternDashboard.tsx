@@ -11,37 +11,33 @@ import { StatsGrid } from "@/components/dashboard/layout/StatsGrid"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 import type { TaskStatus } from "@/lib/types/task"
-import type { Task } from "@/lib/types/task"
 
-import { useSession } from "@/lib/context/session"
 import { dashboardRepository } from "@/lib/repositories/dashboard.repository"
+import { useSession } from "@/lib/context/session"
 
 interface InternDashboardProps {
   userName?: string
 }
 
 const statusColors: Partial<Record<TaskStatus, { bar: string; text: string; label: string }>> = {
-  assigned: { bar: "bg-blue-500", text: "text-blue-700", label: "Assigned" },
-  in_progress: { bar: "bg-yellow-500", text: "text-yellow-700", label: "In Progress" },
-  completed: { bar: "bg-emerald-500", text: "text-emerald-700", label: "Completed" },
+  PENDING: { bar: "bg-blue-500", text: "text-blue-700", label: "Pending" },
+  IN_PROGRESS: { bar: "bg-yellow-500", text: "text-yellow-700", label: "In Progress" },
+  COMPLETED: { bar: "bg-emerald-500", text: "text-emerald-700", label: "Completed" },
 }
 
 function TaskProgressCard({ tasks }: { tasks: { status: TaskStatus }[] }) {
   const total = tasks.length
-  const completed = tasks.filter((t) => t.status === "completed").length
+  const completed = tasks.filter((t) => t.status === "COMPLETED").length
   const pct = total > 0 ? Math.round((completed / total) * 100) : 0
 
   const breakdown = useMemo(() => {
     const counts: Record<TaskStatus, number> = {
-      assigned: 0,
-      in_progress: 0,
-      completed: 0,
-      pending: 0,
+      PENDING: 0,
+      IN_PROGRESS: 0,
+      COMPLETED: 0,
     }
     tasks.forEach((t) => counts[t.status]++)
-    return (Object.entries(counts) as [TaskStatus, number][]).filter(
-      ([s]) => s !== "pending",
-    )
+    return (Object.entries(counts) as [TaskStatus, number][])
   }, [tasks])
 
   return (
@@ -144,31 +140,31 @@ function TaskProgressCardSkeleton() {
   )
 }
 
-export function InternDashboard({ userName = "User" }: InternDashboardProps) {
-  const { user: currentUser } = useSession()
+export function InternDashboard({ userName: _userName }: InternDashboardProps) {
+  const { user } = useSession()
+  const displayName = _userName || user.fullName || "User"
   const [loading, setLoading] = useState(true)
-
   const [stats, setStats] = useState({
-    myTasks: [] as Task[],
     activeTasks: 0,
     reportsSubmitted: 0,
     feedbackReceived: 0,
+    tasks: [] as { status: TaskStatus }[],
   })
 
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const loaded = await dashboardRepository.getInternStats(currentUser.id)
-      setStats(loaded)
+      const data = await dashboardRepository.getInternDashboard()
+      setStats(data)
       setLoading(false)
     }
     load()
-  }, [currentUser.id])
+  }, [])
 
   return (
     <div className="space-y-8">
       <DashboardHeader
-        userName={userName}
+        userName={displayName}
         tagline="Track your tasks, updates, and progress."
         label="Intern Overview"
       />
@@ -232,7 +228,7 @@ export function InternDashboard({ userName = "User" }: InternDashboardProps) {
           {loading ? (
             <TaskProgressCardSkeleton />
           ) : (
-            <TaskProgressCard tasks={stats.myTasks} />
+            <TaskProgressCard tasks={stats.tasks} />
           )}
         </div>
       </section>

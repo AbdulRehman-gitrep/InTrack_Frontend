@@ -24,11 +24,12 @@ interface UserFormDialogProps {
   onOpenChange: (open: boolean) => void
   user?: User | null
   onSave: (data: CreateUserPayload | EditUserPayload) => void
+  error?: string
 }
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDialogProps) {
+export function UserFormDialog({ open, onOpenChange, user, onSave, error }: UserFormDialogProps) {
   const isEditing = !!user
   const [fullName, setFullName] = useState(user?.fullName ?? "")
   const [email, setEmail] = useState(user?.email ?? "")
@@ -47,7 +48,19 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
   const isIntern = role === Role.INTERN
 
   useEffect(() => {
-    if (open && isIntern) {
+    if (!open) return
+    setFullName(user?.fullName ?? "")
+    setEmail(user?.email ?? "")
+    setPassword("")
+    setRole(user?.role ?? Role.INTERN)
+    setDepartment(user?.department ?? "")
+    setInternshipStart(user?.internshipStart ?? "")
+    setInternshipEnd(user?.internshipEnd ?? "")
+    setManagerId(user?.managerId ?? "")
+    setBuddyId(user?.buddyId ?? "")
+    setErrors({})
+    setShowPassword(false)
+    if (!user || user.role === Role.INTERN) {
       Promise.all([
         userRepository.getUsersByRole(Role.MANAGER),
         userRepository.getUsersByRole(Role.BUDDY),
@@ -56,7 +69,7 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
         setBuddies(b)
       })
     }
-  }, [open, isIntern])
+  }, [open])
 
   function validate(): boolean {
     const next: Record<string, string> = {}
@@ -120,6 +133,10 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* dummy fields to trap browser autofill */}
+          <input type="email" name="email_dummy" autoComplete="off" className="hidden" readOnly />
+          <input type="password" name="password_dummy" autoComplete="off" className="hidden" readOnly />
+
           <div className="space-y-2">
             <Label htmlFor="fullName">Full Name</Label>
             <Input
@@ -155,6 +172,7 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pr-9"
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
@@ -269,6 +287,11 @@ export function UserFormDialog({ open, onOpenChange, user, onSave }: UserFormDia
             </>
           )}
 
+          {error && (
+            <div className="rounded-lg bg-red-50 p-3 text-xs text-red-600">
+              {error}
+            </div>
+          )}
           <DialogFooter>
             <Button type="submit">{isEditing ? "Save Changes" : "Create User"}</Button>
           </DialogFooter>

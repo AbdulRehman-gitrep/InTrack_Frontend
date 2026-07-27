@@ -1,7 +1,6 @@
 "use client"
 
-import { Edit, EllipsisVertical, EyeOff, RotateCcw, Shield, UserCog, UserPlus } from "lucide-react"
-import { useMemo } from "react"
+import { Edit, EllipsisVertical, EyeOff, RotateCcw, Shield, Trash2, UserCog, UserPlus } from "lucide-react"
 import { Role } from "@/lib/types/role"
 import type { User } from "@/lib/types/user"
 
@@ -22,6 +21,7 @@ interface UsersTableProps {
   role?: Role
   onEdit: (user: User) => void
   onToggleActive: (userId: string) => void
+  onDelete: (user: User) => void
   onAssignRole: (user: User) => void
   onAssignManager: (user: User) => void
   onAssignBuddy: (user: User) => void
@@ -54,12 +54,12 @@ export function UsersTable({
   role,
   onEdit,
   onToggleActive,
+  onDelete,
   onAssignRole,
   onAssignManager,
   onAssignBuddy,
 }: UsersTableProps) {
   const isAdmin = role === Role.ADMIN
-  const userMap = useMemo(() => new Map(users.map((u) => [u.id, u])), [users])
   return (
     <div className="overflow-x-auto rounded-xl border">
       <table className="w-full text-sm">
@@ -76,9 +76,6 @@ export function UsersTable({
         </thead>
         <tbody>
           {users.map((user) => {
-            const manager = user.managerId ? userMap.get(user.managerId) : null
-            const buddy = user.buddyId ? userMap.get(user.buddyId) : null
-
             return (
               <tr key={user.id} className="border-b last:border-b-0 hover:bg-muted/30">
                 <td className="px-4 py-3">
@@ -103,10 +100,10 @@ export function UsersTable({
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{user.department}</td>
                 <td className="px-4 py-3 text-muted-foreground">
-                  {manager?.fullName ?? "—"}
+                  {user.managerName ?? "—"}
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">
-                  {buddy?.fullName ?? "—"}
+                  {user.buddyName ?? "—"}
                 </td>
                 <td className="px-4 py-3">
                   <span
@@ -156,6 +153,14 @@ export function UsersTable({
                             </DropdownMenuItem>
                           </>
                         )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => onDelete(user)}
+                        >
+                          <Trash2 className="size-4" />
+                          Delete
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => onToggleActive(user.id)}>
                           {user.isActive ? (

@@ -8,7 +8,9 @@ export interface User {
   department: string
   isActive: boolean
   managerId: string | null
+  managerName: string | null
   buddyId: string | null
+  buddyName: string | null
   internshipStart: string | null
   internshipEnd: string | null
   createdAt: string

@@ -11,7 +11,9 @@ function mapUser(u: Record<string, unknown>): User {
     department: u.department as string,
     isActive: u.isActive as boolean,
     managerId: u.managerId != null ? String(u.managerId) : null,
+    managerName: (u.managerName as string) ?? null,
     buddyId: u.buddyId != null ? String(u.buddyId) : null,
+    buddyName: (u.buddyName as string) ?? null,
     internshipStart: (u.internshipStart as string) ?? null,
     internshipEnd: (u.internshipEnd as string) ?? null,
     createdAt: u.createdAt as string,
@@ -25,6 +27,8 @@ interface GetUsersParams {
   department?: string
   status?: string
   search?: string
+  managerId?: number
+  buddyId?: number
 }
 
 interface PaginatedResult {
@@ -119,5 +123,9 @@ export const userRepository = {
       buddyId: buddyId ? Number(buddyId) : null,
     })
     return mapUser(response.data.data as Record<string, unknown>)
+  },
+
+  async deleteUser(id: string): Promise<void> {
+    await api.delete(`/users/${id}`)
   },
 }

@@ -1,39 +1,44 @@
-import type { Feedback } from "@/lib/types/feedback"
-import type { CreateFeedbackDto } from "@/lib/dto/create-feedback.dto"
-import { mockFeedback } from "@/lib/mock/feedback"
+import api from "@/lib/api/client"
+import type { Feedback, CreateFeedbackPayload } from "@/lib/types/feedback"
 
-let feedback = mockFeedback.map((f) => ({ ...f }))
+function mapFeedback(f: Record<string, unknown>): Feedback {
+  return {
+    id: f.id as number,
+    content: f.content as string,
+    createdAt: f.createdAt as string,
+    fromId: (f.fromId as number) ?? null,
+    fromName: (f.fromName as string) ?? null,
+    toId: (f.toId as number) ?? null,
+    toName: (f.toName as string) ?? null,
+  }
+}
 
-export function resetFeedbackRepository() {
-  feedback = mockFeedback.map((f) => ({ ...f }))
+interface PaginatedResult {
+  feedback: Feedback[]
+  pagination: { page: number; limit: number; total: number; totalPages: number }
 }
 
 export const feedbackRepository = {
-  async getFeedback(): Promise<Feedback[]> {
-    return feedback.map((f) => ({ ...f }))
-  },
-
-  async getFeedbackReceived(userId: string): Promise<Feedback[]> {
-    return feedback
-      .filter((f) => f.toId === userId)
-      .map((f) => ({ ...f }))
-  },
-
-  async getFeedbackGiven(userId: string): Promise<Feedback[]> {
-    return feedback
-      .filter((f) => f.fromId === userId)
-      .map((f) => ({ ...f }))
-  },
-
-  async createFeedback(data: CreateFeedbackDto): Promise<Feedback> {
-    const newFeedback: Feedback = {
-      id: String(Date.now()),
-      fromId: data.fromId,
-      toId: data.toId,
-      content: data.content,
-      createdAt: new Date().toISOString(),
+  async getReceived(page = 1, limit = 20): Promise<PaginatedResult> {
+    const response = await api.get("/feedback/received", { params: { page, limit } })
+    const { feedback, pagination } = response.data.data as {
+      feedback: Record<string, unknown>[]
+      pagination: { page: number; limit: number; total: number; totalPages: number }
     }
-    feedback.push(newFeedback)
-    return { ...newFeedback }
+    return { feedback: feedback.map(mapFeedback), pagination }
+  },
+
+  async getSent(page = 1, limit = 20): Promise<PaginatedResult> {
+    const response = await api.get("/feedback/sent", { params: { page, limit } })
+    const { feedback, pagination } = response.data.data as {
+      feedback: Record<string, unknown>[]
+      pagination: { page: number; limit: number; total: number; totalPages: number }
+    }
+    return { feedback: feedback.map(mapFeedback), pagination }
+  },
+
+  async create(data: CreateFeedbackPayload): Promise<Feedback> {
+    const response = await api.post("/feedback", data)
+    return mapFeedback(response.data.data as Record<string, unknown>)
   },
 }

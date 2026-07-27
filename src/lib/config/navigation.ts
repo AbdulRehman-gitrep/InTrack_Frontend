@@ -6,6 +6,7 @@ import {
   FileText,
   MessageSquare,
   User,
+  Clock,
 } from "lucide-react";
 
 import { NavigationItem } from "../types/navigation";
@@ -59,11 +60,14 @@ export const navigation: NavigationItem[] = [
     title: "Feedback",
     href: "/feedback",
     icon: MessageSquare,
-    roles: [
-      Role.INTERN,
-      Role.BUDDY,
-      Role.MANAGER,
-    ],
+    roles: [Role.INTERN, Role.BUDDY, Role.MANAGER],
+  },
+
+  {
+    title: "Activity",
+    href: "/activity",
+    icon: Clock,
+    roles: [Role.ADMIN, Role.MANAGER, Role.BUDDY, Role.INTERN],
   },
 
   {

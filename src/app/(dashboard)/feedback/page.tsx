@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
-import { Send } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Send, ChevronLeft, ChevronRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,7 +11,6 @@ import { FeedbackCard } from "@/components/feedback/FeedbackCard"
 import { useSession } from "@/lib/context/session"
 
 import type { Feedback } from "@/lib/types/feedback"
-import type { User } from "@/lib/types/user"
 import { Role } from "@/lib/types/role"
 import { feedbackRepository } from "@/lib/repositories/feedback.repository"
 import { userRepository } from "@/lib/repositories/user.repository"
@@ -19,44 +18,47 @@ import { userRepository } from "@/lib/repositories/user.repository"
 export default function FeedbackPage() {
   const { user } = useSession()
   const [feedback, setFeedback] = useState<Feedback[]>([])
-  const [allUsers, setAllUsers] = useState<User[]>([])
   const [content, setContent] = useState("")
   const [recipientId, setRecipientId] = useState("")
+  const [interns, setInterns] = useState<{ id: string; fullName: string; department: string }[]>([])
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(0)
+  const [total, setTotal] = useState(0)
+  const limit = 20
+
   const isIntern = user.role === Role.INTERN
+  const canGive = user.role === Role.MANAGER || user.role === Role.BUDDY
 
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const [loadedFeedback, { users: loadedUsers }] = await Promise.all([
-        feedbackRepository.getFeedback(),
-        userRepository.getUsers(),
-      ])
-      setFeedback(loadedFeedback)
-      setAllUsers(loadedUsers)
+      if (canGive) {
+        const params: Record<string, string | number> = { role: Role.INTERN.toUpperCase() }
+        if (user.role === Role.MANAGER) {
+          params.managerId = Number(user.id)
+        }
+        if (user.role === Role.BUDDY) {
+          params.buddyId = Number(user.id)
+        }
+        const result = await userRepository.getUsers(params)
+        setInterns(result.users.map((u) => ({ id: u.id, fullName: u.fullName, department: u.department })))
+      }
+      await loadFeedback()
       setLoading(false)
     }
     load()
-  }, [])
+  }, [page])
 
-  const userMap = useMemo(() => new Map(allUsers.map((u) => [u.id, u])), [allUsers])
-
-  const visibleFeedback = useMemo(
-    () =>
-      [...feedback]
-        .filter((f) => (isIntern ? f.toId === user.id : f.fromId === user.id))
-        .sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        ),
-    [feedback, user.id, isIntern],
-  )
-
-  const interns = useMemo(
-    () => allUsers.filter((u) => u.role === Role.INTERN && u.isActive),
-    [allUsers],
-  )
+  async function loadFeedback() {
+    const result = isIntern
+      ? await feedbackRepository.getReceived(page, limit)
+      : await feedbackRepository.getSent(page, limit)
+    setFeedback(result.feedback)
+    setTotalPages(result.pagination.totalPages)
+    setTotal(result.pagination.total)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -68,9 +70,8 @@ export default function FeedbackPage() {
       setError("Select an intern.")
       return
     }
-    const created = await feedbackRepository.createFeedback({
-      fromId: user.id,
-      toId: recipientId,
+    const created = await feedbackRepository.create({
+      toId: Number(recipientId),
       content: content.trim(),
     })
     setFeedback((prev) => [created, ...prev])
@@ -90,7 +91,7 @@ export default function FeedbackPage() {
         </p>
       </div>
 
-      {!isIntern && (
+      {canGive && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Give Feedback</CardTitle>
@@ -134,10 +135,33 @@ export default function FeedbackPage() {
         </Card>
       )}
 
-      <div>
+      <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-slate-900">
-          {isIntern ? "Received" : "Given"} ({visibleFeedback.length})
+          {isIntern ? "Received" : "Given"} ({total})
         </h2>
+        {totalPages > 1 && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              {page} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -148,17 +172,17 @@ export default function FeedbackPage() {
             ))}
           </>
         ) : (
-          visibleFeedback.map((f) => (
+          feedback.map((f) => (
             <FeedbackCard
               key={f.id}
-              from={userMap.get(f.fromId)!}
-              to={userMap.get(f.toId)!}
+              fromName={f.fromName ?? "Unknown"}
+              toName={f.toName ?? "Unknown"}
               content={f.content}
               createdAt={f.createdAt}
             />
           ))
         )}
-        {!loading && visibleFeedback.length === 0 && (
+        {!loading && feedback.length === 0 && (
           <p className="py-8 text-center text-sm text-muted-foreground">
             {isIntern
               ? "No feedback received yet."

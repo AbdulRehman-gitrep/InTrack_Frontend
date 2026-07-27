@@ -17,9 +17,14 @@ interface FilePreviewCardProps {
 }
 
 export function FilePreviewCard({ file, onRemove, showRemove }: FilePreviewCardProps) {
-  return (
-    <div className="group relative flex items-center gap-3 rounded-lg border bg-card p-3 transition-all hover:shadow-md">
-      {file.type === "image" && (
+  const content = (
+    <>
+      {file.type === "image" && file.url && (
+        <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">
+          <img src={file.url} alt={file.name} className="size-full object-cover" />
+        </div>
+      )}
+      {file.type === "image" && !file.url && (
         <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">
           <div className="flex size-full items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 text-2xl">
             🖼
@@ -43,6 +48,20 @@ export function FilePreviewCard({ file, onRemove, showRemove }: FilePreviewCardP
           {file.duration && ` · ${file.duration}`}
         </span>
       </div>
+    </>
+  )
+
+  return (
+    <div className="group relative flex items-center gap-3 rounded-lg border bg-card p-3 transition-all hover:shadow-md">
+      {file.url ? (
+        <a href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 flex-1 min-w-0">
+          {content}
+        </a>
+      ) : (
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {content}
+        </div>
+      )}
       {showRemove && (
         <button
           type="button"

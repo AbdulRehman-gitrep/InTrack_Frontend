@@ -1,9 +1,10 @@
 "use client"
 
-import { useMemo, useState } from "react"
-import type { Task, TaskStatus } from "@/lib/types/task"
+import { useState, useEffect, useMemo } from "react"
+import type { Task } from "@/lib/types/task"
 import type { User } from "@/lib/types/user"
 import { Role } from "@/lib/types/role"
+import { userRepository } from "@/lib/repositories/user.repository"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,61 +21,92 @@ import {
 interface TaskFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  interns: User[]
-  currentUserId: string
-  onSave: (task: Omit<Task, "id" | "createdAt">) => void
+  onSave: (data: { title: string; description?: string; internId: number; dueDate: string }) => Promise<void>
+  editingTask?: Task | null
+  currentUserId?: string
+  currentUserRole?: string
 }
 
 export function TaskFormDialog({
   open,
   onOpenChange,
-  interns,
-  currentUserId,
   onSave,
+  editingTask,
+  currentUserId,
+  currentUserRole,
 }: TaskFormDialogProps) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [assigneeId, setAssigneeId] = useState("")
+  const [internId, setInternId] = useState("")
   const [dueDate, setDueDate] = useState("")
+  const [interns, setInterns] = useState<User[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [saving, setSaving] = useState(false)
 
   const activeInterns = useMemo(
     () => interns.filter((u) => u.isActive),
     [interns],
   )
 
+  useEffect(() => {
+    if (!open) return
+    const params: Record<string, string | number> = { role: Role.INTERN.toUpperCase() }
+    if (currentUserRole === Role.MANAGER && currentUserId) {
+      params.managerId = Number(currentUserId)
+    }
+    userRepository.getUsers(params).then((r) => setInterns(r.users))
+  }, [open, currentUserRole, currentUserId])
+
+  useEffect(() => {
+    if (editingTask) {
+      setTitle(editingTask.title)
+      setDescription(editingTask.description ?? "")
+      setInternId(String(editingTask.internId ?? ""))
+      setDueDate(editingTask.dueDate)
+    } else {
+      setTitle("")
+      setDescription("")
+      setInternId("")
+      setDueDate("")
+    }
+    setErrors({})
+  }, [editingTask, open])
+
   function validate(): boolean {
     const next: Record<string, string> = {}
     if (!title.trim()) next.title = "Title is required."
-    if (!assigneeId) next.assigneeId = "Select an intern."
+    if (!internId) next.internId = "Select an intern."
     if (!dueDate) next.dueDate = "Due date is required."
     setErrors(next)
     return Object.keys(next).length === 0
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!validate()) return
-    onSave({
+    setSaving(true)
+    await onSave({
       title: title.trim(),
-      description: description.trim(),
-      status: "assigned" as TaskStatus,
-      assigneeId,
-      createdBy: currentUserId,
+      description: description.trim() || undefined,
+      internId: Number(internId),
       dueDate,
     })
-    setTitle("")
-    setDescription("")
-    setAssigneeId("")
-    setDueDate("")
+    setSaving(false)
+    if (!editingTask) {
+      setTitle("")
+      setDescription("")
+      setInternId("")
+      setDueDate("")
+    }
     setErrors({})
+    onOpenChange(false)
   }
 
   function handleOpenChange(open: boolean) {
     if (!open) {
       setTitle("")
       setDescription("")
-      setAssigneeId("")
+      setInternId("")
       setDueDate("")
       setErrors({})
     }
@@ -85,9 +117,11 @@ export function TaskFormDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Assign Task</DialogTitle>
+          <DialogTitle>{editingTask ? "Edit Task" : "Assign Task"}</DialogTitle>
           <DialogDescription>
-            Create a new task and assign it to an intern.
+            {editingTask
+              ? "Update the task details."
+              : "Create a new task and assign it to an intern."}
           </DialogDescription>
         </DialogHeader>
 
@@ -118,11 +152,11 @@ export function TaskFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="assignee">Assign to</Label>
+            <Label htmlFor="internId">Assign to</Label>
             <select
-              id="assignee"
-              value={assigneeId}
-              onChange={(e) => setAssigneeId(e.target.value)}
+              id="internId"
+              value={internId}
+              onChange={(e) => setInternId(e.target.value)}
               className="flex h-9 w-full rounded-lg border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             >
               <option value="">Select an intern...</option>
@@ -132,8 +166,8 @@ export function TaskFormDialog({
                 </option>
               ))}
             </select>
-            {errors.assigneeId && (
-              <p className="text-xs text-red-600">{errors.assigneeId}</p>
+            {errors.internId && (
+              <p className="text-xs text-red-600">{errors.internId}</p>
             )}
           </div>
 
@@ -151,7 +185,9 @@ export function TaskFormDialog({
           </div>
 
           <DialogFooter>
-            <Button type="submit">Assign Task</Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Saving..." : editingTask ? "Save Changes" : "Assign Task"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

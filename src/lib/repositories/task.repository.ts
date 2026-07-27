@@ -1,52 +1,57 @@
-import { Role } from "@/lib/types/role"
-import type { Task, TaskStatus } from "@/lib/types/task"
-import { mockTasks } from "@/lib/mock/tasks"
-import { getUsersByRole } from "@/lib/mock/users"
+import api from "@/lib/api/client"
+import type { Task, TaskStatus, CreateTaskPayload, UpdateTaskPayload } from "@/lib/types/task"
 
-let tasks = mockTasks.map((t) => ({ ...t }))
+function mapTask(t: Record<string, unknown>): Task {
+  return {
+    id: t.id as number,
+    title: t.title as string,
+    description: (t.description as string) ?? null,
+    status: t.status as TaskStatus,
+    dueDate: t.dueDate as string,
+    createdAt: t.createdAt as string,
+    internId: (t.internId as number) ?? null,
+    internName: (t.internName as string) ?? null,
+    managerId: (t.managerId as number) ?? null,
+    managerName: (t.managerName as string) ?? null,
+  }
+}
 
-export function resetTaskRepository() {
-  tasks = mockTasks.map((t) => ({ ...t }))
+interface PaginatedResult {
+  tasks: Task[]
+  pagination: { page: number; limit: number; total: number; totalPages: number }
 }
 
 export const taskRepository = {
-  async getTasks(): Promise<Task[]> {
-    return tasks.map((t) => ({ ...t }))
-  },
-
-  async getTaskById(id: string): Promise<Task | undefined> {
-    return tasks.find((t) => t.id === id)
-  },
-
-  async getTasksForIntern(internId: string): Promise<Task[]> {
-    return tasks.filter((t) => t.assigneeId === internId).map((t) => ({ ...t }))
-  },
-
-  async getTasksForManager(managerId: string): Promise<Task[]> {
-    return tasks.filter((t) => t.createdBy === managerId).map((t) => ({ ...t }))
-  },
-
-  async getTasksForBuddy(buddyId: string): Promise<Task[]> {
-    const internIds = getUsersByRole(Role.INTERN)
-      .filter((u) => u.buddyId === buddyId)
-      .map((u) => u.id)
-    return tasks.filter((t) => internIds.includes(t.assigneeId)).map((t) => ({ ...t }))
-  },
-
-  async createTask(data: Omit<Task, "id" | "createdAt">): Promise<Task> {
-    const newTask: Task = {
-      ...data,
-      id: String(Date.now()),
-      createdAt: new Date().toISOString().split("T")[0],
+  async getTasks(params?: Record<string, string | number | undefined>): Promise<PaginatedResult> {
+    const response = await api.get("/tasks", { params })
+    const { tasks, pagination } = response.data.data as {
+      tasks: Record<string, unknown>[]
+      pagination: { page: number; limit: number; total: number; totalPages: number }
     }
-    tasks.push(newTask)
-    return { ...newTask }
+    return { tasks: tasks.map(mapTask), pagination }
   },
 
-  async updateTaskStatus(id: string, status: TaskStatus): Promise<Task | undefined> {
-    const index = tasks.findIndex((t) => t.id === id)
-    if (index === -1) return undefined
-    tasks[index] = { ...tasks[index], status }
-    return { ...tasks[index] }
+  async getTaskById(id: number): Promise<Task> {
+    const response = await api.get(`/tasks/${id}`)
+    return mapTask(response.data.data as Record<string, unknown>)
+  },
+
+  async createTask(data: CreateTaskPayload): Promise<Task> {
+    const response = await api.post("/tasks", data)
+    return mapTask(response.data.data as Record<string, unknown>)
+  },
+
+  async updateTask(id: number, data: UpdateTaskPayload): Promise<Task> {
+    const response = await api.patch(`/tasks/${id}`, data)
+    return mapTask(response.data.data as Record<string, unknown>)
+  },
+
+  async updateTaskStatus(id: number, status: TaskStatus): Promise<Task> {
+    const response = await api.patch(`/tasks/${id}/status`, { status })
+    return mapTask(response.data.data as Record<string, unknown>)
+  },
+
+  async deleteTask(id: number): Promise<void> {
+    await api.delete(`/tasks/${id}`)
   },
 }

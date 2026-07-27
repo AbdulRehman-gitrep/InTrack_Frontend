@@ -11,12 +11,18 @@ import { StatsGrid } from "@/components/dashboard/layout/StatsGrid"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-import { useSession } from "@/lib/context/session"
 import { dashboardRepository } from "@/lib/repositories/dashboard.repository"
-import type { User } from "@/lib/types/user"
+import { useSession } from "@/lib/context/session"
 
 interface BuddyDashboardProps {
   userName?: string
+}
+
+interface InternProgress {
+  intern: { id: number; fullName: string; department: string }
+  reportsReviewed: number
+  totalReports: number
+  feedbackCount: number
 }
 
 function ProgressBar({ value, max, color }: { value: number; max: number; color: string }) {
@@ -41,12 +47,7 @@ function InternProgressCard({
   reportsReviewed,
   totalReports,
   feedbackCount,
-}: {
-  intern: { fullName: string; department: string }
-  reportsReviewed: number
-  totalReports: number
-  feedbackCount: number
-}) {
+}: InternProgress) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center gap-3 pb-3">
@@ -123,39 +124,32 @@ function InternProgressCardSkeleton() {
   )
 }
 
-export function BuddyDashboard({ userName = "User" }: BuddyDashboardProps) {
-  const { user: currentUser } = useSession()
+export function BuddyDashboard({ userName: _userName }: BuddyDashboardProps) {
+  const { user } = useSession()
+  const displayName = _userName || user.fullName || "User"
   const [loading, setLoading] = useState(true)
-  const [progress, setProgress] = useState<{
-    intern: User
-    reportsReviewed: number
-    totalReports: number
-    feedbackCount: number
-  }[]>([])
-
-  const [stats, setStats] = useState({
-    assignedInterns: 0,
-    pendingReports: 0,
-  })
+  const [stats, setStats] = useState({ assignedInterns: 0, pendingReports: 0, totalFeedbackGiven: 0 })
+  const [progress, setProgress] = useState<InternProgress[]>([])
 
   useEffect(() => {
     async function load() {
       setLoading(true)
-      const [loadedStats, loadedProgress] = await Promise.all([
-        dashboardRepository.getBuddyStats(currentUser.id),
-        dashboardRepository.getBuddyInternProgress(currentUser.id),
-      ])
-      setStats(loadedStats)
-      setProgress(loadedProgress)
+      const data = await dashboardRepository.getBuddyDashboard()
+      setStats({
+        assignedInterns: data.assignedInterns,
+        pendingReports: data.pendingReports,
+        totalFeedbackGiven: data.totalFeedbackGiven,
+      })
+      setProgress(data.internProgress)
       setLoading(false)
     }
     load()
-  }, [currentUser.id])
+  }, [])
 
   return (
     <div className="space-y-8">
       <DashboardHeader
-        userName={userName}
+        userName={displayName}
         tagline="Support your interns and track their daily progress."
         label="Buddy Overview"
       />
@@ -194,8 +188,8 @@ export function BuddyDashboard({ userName = "User" }: BuddyDashboardProps) {
               />
               <StatCard
                 title="Feedback Given"
-                value={progress.reduce((sum, p) => sum + p.feedbackCount, 0)}
-                description="This month"
+                value={stats.totalFeedbackGiven}
+                description="Total sent"
                 icon={MessageSquare}
                 iconColor="text-emerald-600"
                 iconBackground="bg-emerald-100"
@@ -224,13 +218,7 @@ export function BuddyDashboard({ userName = "User" }: BuddyDashboardProps) {
         ) : progress.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {progress.map((p) => (
-              <InternProgressCard
-                key={p.intern.id}
-                intern={p.intern}
-                reportsReviewed={p.reportsReviewed}
-                totalReports={p.totalReports}
-                feedbackCount={p.feedbackCount}
-              />
+              <InternProgressCard key={p.intern.id} {...p} />
             ))}
           </div>
         ) : (
