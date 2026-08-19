@@ -73,7 +73,7 @@ export default function ReportsPage() {
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
-  }, [reports, user.id, isIntern, isManager, filterIntern, searchDate])
+  }, [reports, user.id, user.role, isIntern, isManager, filterIntern, searchDate])
 
   const handleCreateReport = useCallback(async (data: { title: string; description: string; files: File[] }) => {
     const created = await reportRepository.createReport({

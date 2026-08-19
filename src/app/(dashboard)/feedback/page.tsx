@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Send, ChevronLeft, ChevronRight } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -31,9 +31,17 @@ export default function FeedbackPage() {
   const isIntern = user.role === Role.INTERN
   const canGive = user.role === Role.MANAGER || user.role === Role.BUDDY
 
+  const loadFeedback = useCallback(async () => {
+    const result = isIntern
+      ? await feedbackRepository.getReceived(page, limit)
+      : await feedbackRepository.getSent(page, limit)
+    setFeedback(result.feedback)
+    setTotalPages(result.pagination.totalPages)
+    setTotal(result.pagination.total)
+  }, [isIntern, page])
+
   useEffect(() => {
     async function load() {
-      setLoading(true)
       if (canGive) {
         const params: Record<string, string | number> = { role: Role.INTERN.toUpperCase() }
         if (user.role === Role.MANAGER) {
@@ -49,16 +57,7 @@ export default function FeedbackPage() {
       setLoading(false)
     }
     load()
-  }, [page])
-
-  async function loadFeedback() {
-    const result = isIntern
-      ? await feedbackRepository.getReceived(page, limit)
-      : await feedbackRepository.getSent(page, limit)
-    setFeedback(result.feedback)
-    setTotalPages(result.pagination.totalPages)
-    setTotal(result.pagination.total)
-  }
+  }, [canGive, loadFeedback, user.id, user.role])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

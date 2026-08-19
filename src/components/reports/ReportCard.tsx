@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar, CheckCircle2, Clock, Eye, FileText, Pencil, Trash2 } from "lucide-react"
+import { CheckCircle2, Clock, Eye, FileText, Pencil, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -35,10 +35,6 @@ interface ReportCardProps {
 }
 
 export function ReportCard({ report, authorName, onView, onEdit, onDelete }: ReportCardProps) {
-  const truncated = report.description.length > 120
-    ? report.description.slice(0, 120) + "..."
-    : report.description
-
   return (
     <Card className="group transition-all hover:shadow-lg hover:border-muted-foreground/20">
       <CardContent className="p-5">

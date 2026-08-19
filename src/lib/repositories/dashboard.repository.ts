@@ -1,5 +1,5 @@
 import api from "@/lib/api/client"
-import type { Task, TaskStatus } from "@/lib/types/task"
+import type { TaskStatus } from "@/lib/types/task"
 
 interface InternBrief {
   id: number
@@ -11,12 +11,6 @@ interface AdminStats {
   totalUsers: number
   activeInterns: number
   departmentStats: { title: string; count: number }[]
-}
-
-interface ManagerStats {
-  assignedInterns: number
-  activeTasks: number
-  pendingReports: number
 }
 
 interface ManagerInternProgress {
@@ -32,12 +26,6 @@ interface ManagerDashboard {
   activeTasks: number
   pendingReports: number
   internProgress: ManagerInternProgress[]
-}
-
-interface BuddyStats {
-  assignedInterns: number
-  pendingReports: number
-  totalFeedbackGiven: number
 }
 
 interface BuddyInternProgress {

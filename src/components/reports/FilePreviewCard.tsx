@@ -1,6 +1,6 @@
 "use client"
 
-import { FileIcon, ImageIcon, VideoIcon, X } from "lucide-react"
+import { X } from "lucide-react"
 
 import type { Attachment } from "@/lib/types/update"
 
@@ -21,6 +21,7 @@ export function FilePreviewCard({ file, onRemove, showRemove }: FilePreviewCardP
     <>
       {file.type === "image" && file.url && (
         <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={file.url} alt={file.name} className="size-full object-cover" />
         </div>
       )}

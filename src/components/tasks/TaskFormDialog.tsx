@@ -58,18 +58,20 @@ export function TaskFormDialog({
   }, [open, currentUserRole, currentUserId])
 
   useEffect(() => {
-    if (editingTask) {
-      setTitle(editingTask.title)
-      setDescription(editingTask.description ?? "")
-      setInternId(String(editingTask.internId ?? ""))
-      setDueDate(editingTask.dueDate)
-    } else {
-      setTitle("")
-      setDescription("")
-      setInternId("")
-      setDueDate("")
-    }
-    setErrors({})
+    queueMicrotask(() => {
+      if (editingTask) {
+        setTitle(editingTask.title)
+        setDescription(editingTask.description ?? "")
+        setInternId(String(editingTask.internId ?? ""))
+        setDueDate(editingTask.dueDate)
+      } else {
+        setTitle("")
+        setDescription("")
+        setInternId("")
+        setDueDate("")
+      }
+      setErrors({})
+    })
   }, [editingTask, open])
 
   function validate(): boolean {

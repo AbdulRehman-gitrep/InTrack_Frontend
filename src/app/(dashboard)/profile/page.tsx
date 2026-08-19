@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { UserFormDialog } from "@/components/users/UserFormDialog"
 
 import { useSession } from "@/lib/context/session"
+import { userRepository } from "@/lib/repositories/user.repository"
 
 const roleLabels: Record<Role, string> = {
   [Role.ADMIN]: "Administrator",
@@ -38,19 +39,26 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 export default function ProfilePage() {
-  const { user: sessionUser } = useSession()
+  const { user: sessionUser, refresh } = useSession()
   const [profile, setProfile] = useState(sessionUser)
   const [editOpen, setEditOpen] = useState(false)
 
-  function handleEdit(data: EditUserPayload) {
-    setProfile((prev) => ({
-      ...prev,
-      fullName: data.fullName,
-      email: data.email,
-      department: data.department,
-      internshipStart: data.internshipStart ?? prev.internshipStart,
-      internshipEnd: data.internshipEnd ?? prev.internshipEnd,
-    }))
+  const [error, setError] = useState("")
+
+  async function handleEdit(data: EditUserPayload) {
+    try {
+      const updated = await userRepository.updateProfile(data)
+      setProfile(updated)
+      await refresh()
+      setError("")
+    } catch (e: unknown) {
+      const message =
+        e && typeof e === "object" && "response" in e
+          ? (e as { response?: { data?: { message?: string | string[] } } }).response?.data?.message
+          : undefined
+      setError(Array.isArray(message) ? message.join(", ") : message ?? "Failed to update profile")
+      return
+    }
     setEditOpen(false)
   }
 
@@ -110,6 +118,8 @@ export default function ProfilePage() {
         onOpenChange={setEditOpen}
         user={profile}
         onSave={handleEdit}
+        error={error}
+        profileMode
       />
     </div>
   )

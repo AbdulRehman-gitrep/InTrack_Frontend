@@ -110,7 +110,6 @@ export default function ActivityPage() {
   const [entityTypeFilter, setEntityTypeFilter] = useState("")
 
   const loadActivities = useCallback(async () => {
-    setLoading(true)
     const params: Record<string, string | number> = { page, limit }
     if (debouncedSearch) params.search = debouncedSearch
     if (actionTypeFilter) params.actionType = actionTypeFilter
@@ -123,15 +122,14 @@ export default function ActivityPage() {
   }, [page, debouncedSearch, actionTypeFilter, entityTypeFilter])
 
   useEffect(() => {
-    loadActivities()
+    queueMicrotask(() => void loadActivities())
   }, [loadActivities])
 
   useEffect(() => {
-    setPage(1)
-  }, [debouncedSearch, actionTypeFilter, entityTypeFilter])
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300)
+    const timer = setTimeout(() => {
+      setPage(1)
+      setDebouncedSearch(search)
+    }, 300)
     return () => clearTimeout(timer)
   }, [search])
 
@@ -167,7 +165,10 @@ export default function ActivityPage() {
         </div>
         <select
           value={actionTypeFilter}
-          onChange={(e) => setActionTypeFilter(e.target.value)}
+          onChange={(e) => {
+            setPage(1)
+            setActionTypeFilter(e.target.value)
+          }}
           className="h-9 rounded-lg border border-input bg-transparent px-3 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
           {actionTypeOptions.map((opt) => (
@@ -178,7 +179,10 @@ export default function ActivityPage() {
         </select>
         <select
           value={entityTypeFilter}
-          onChange={(e) => setEntityTypeFilter(e.target.value)}
+          onChange={(e) => {
+            setPage(1)
+            setEntityTypeFilter(e.target.value)
+          }}
           className="h-9 rounded-lg border border-input bg-transparent px-3 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
           {entityTypeOptions.map((opt) => (

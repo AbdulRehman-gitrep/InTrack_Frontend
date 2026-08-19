@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar, CheckCircle2, Circle, Clock } from "lucide-react"
+import { Calendar, CheckCircle2, Clock } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {

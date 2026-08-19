@@ -74,6 +74,6 @@ export const reportRepository = {
   },
 
   async deleteAttachment(reportId: number, publicId: string): Promise<void> {
-    await api.delete(`/reports/${reportId}/attachments/${publicId}`)
+    await api.delete(`/reports/${reportId}/attachments/${encodeURIComponent(publicId)}`)
   },
 }

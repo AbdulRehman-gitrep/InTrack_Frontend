@@ -25,11 +25,12 @@ interface UserFormDialogProps {
   user?: User | null
   onSave: (data: CreateUserPayload | EditUserPayload) => void
   error?: string
+  profileMode?: boolean
 }
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export function UserFormDialog({ open, onOpenChange, user, onSave, error }: UserFormDialogProps) {
+export function UserFormDialog({ open, onOpenChange, user, onSave, error, profileMode = false }: UserFormDialogProps) {
   const isEditing = !!user
   const [fullName, setFullName] = useState(user?.fullName ?? "")
   const [email, setEmail] = useState(user?.email ?? "")
@@ -45,22 +46,24 @@ export function UserFormDialog({ open, onOpenChange, user, onSave, error }: User
   const [buddies, setBuddies] = useState<User[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const isIntern = role === Role.INTERN
+  const isIntern = role === Role.INTERN && !profileMode
 
   useEffect(() => {
     if (!open) return
-    setFullName(user?.fullName ?? "")
-    setEmail(user?.email ?? "")
-    setPassword("")
-    setRole(user?.role ?? Role.INTERN)
-    setDepartment(user?.department ?? "")
-    setInternshipStart(user?.internshipStart ?? "")
-    setInternshipEnd(user?.internshipEnd ?? "")
-    setManagerId(user?.managerId ?? "")
-    setBuddyId(user?.buddyId ?? "")
-    setErrors({})
-    setShowPassword(false)
-    if (!user || user.role === Role.INTERN) {
+    queueMicrotask(() => {
+      setFullName(user?.fullName ?? "")
+      setEmail(user?.email ?? "")
+      setPassword("")
+      setRole(user?.role ?? Role.INTERN)
+      setDepartment(user?.department ?? "")
+      setInternshipStart(user?.internshipStart ?? "")
+      setInternshipEnd(user?.internshipEnd ?? "")
+      setManagerId(user?.managerId ?? "")
+      setBuddyId(user?.buddyId ?? "")
+      setErrors({})
+      setShowPassword(false)
+    })
+    if (!profileMode && (!user || user.role === Role.INTERN)) {
       Promise.all([
         userRepository.getUsersByRole(Role.MANAGER),
         userRepository.getUsersByRole(Role.BUDDY),
@@ -69,7 +72,7 @@ export function UserFormDialog({ open, onOpenChange, user, onSave, error }: User
         setBuddies(b)
       })
     }
-  }, [open])
+  }, [open, profileMode, user])
 
   function validate(): boolean {
     const next: Record<string, string> = {}
@@ -188,7 +191,7 @@ export function UserFormDialog({ open, onOpenChange, user, onSave, error }: User
             </div>
           )}
 
-          <div className="space-y-2">
+          {!profileMode && <div className="space-y-2">
             <Label htmlFor="role">Role</Label>
             <select
               id="role"
@@ -202,7 +205,7 @@ export function UserFormDialog({ open, onOpenChange, user, onSave, error }: User
               <option value={Role.BUDDY}>Buddy</option>
               <option value={Role.INTERN}>Intern</option>
             </select>
-          </div>
+          </div>}
 
           <div className="space-y-2">
             <Label htmlFor="department">Department</Label>

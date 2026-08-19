@@ -103,7 +103,6 @@ export default function TasksPage() {
   const canManage = isManager || isAdmin
 
   const loadTasks = useCallback(async () => {
-    setLoading(true)
     const params: Record<string, string | number> = { page, limit }
     if (debouncedSearch) params.search = debouncedSearch
     if (statusFilter) params.status = statusFilter
@@ -115,15 +114,14 @@ export default function TasksPage() {
   }, [page, debouncedSearch, statusFilter])
 
   useEffect(() => {
-    loadTasks()
+    queueMicrotask(() => void loadTasks())
   }, [loadTasks])
 
   useEffect(() => {
-    setPage(1)
-  }, [debouncedSearch, statusFilter])
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300)
+    const timer = setTimeout(() => {
+      setPage(1)
+      setDebouncedSearch(search)
+    }, 300)
     return () => clearTimeout(timer)
   }, [search])
 
@@ -215,7 +213,10 @@ export default function TasksPage() {
         </div>
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as TaskStatus | "")}
+          onChange={(e) => {
+            setPage(1)
+            setStatusFilter(e.target.value as TaskStatus | "")
+          }}
           className="h-9 rounded-lg border border-input bg-transparent px-3 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         >
           {statusOptions.map((opt) => (

@@ -27,6 +27,7 @@ interface Session {
   role: Role
   login: (token: string) => void
   logout: () => void
+  refresh: () => Promise<void>
   loading: boolean
   authenticated: boolean
 }
@@ -36,6 +37,7 @@ const SessionContext = createContext<Session>({
   role: Role.INTERN,
   login: () => {},
   logout: () => {},
+  refresh: async () => {},
   loading: true,
   authenticated: false,
 })
@@ -59,7 +61,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         })
         .finally(() => setLoading(false))
     } else {
-      setLoading(false)
+      Promise.resolve().then(() => setLoading(false))
     }
   }, [])
 
@@ -83,8 +85,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     setAuthenticated(false)
   }, [])
 
+  const refresh = useCallback(async () => {
+    const currentUser = await authRepository.getCurrentUser()
+    setUser(currentUser)
+    setAuthenticated(true)
+  }, [])
+
   return (
-    <SessionContext.Provider value={{ user, role: user.role, login, logout, loading, authenticated }}>
+    <SessionContext.Provider value={{ user, role: user.role, login, logout, refresh, loading, authenticated }}>
       {children}
     </SessionContext.Provider>
   )

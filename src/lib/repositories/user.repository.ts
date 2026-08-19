@@ -96,6 +96,15 @@ export const userRepository = {
     return mapUser(response.data.data as Record<string, unknown>)
   },
 
+  async updateProfile(data: EditUserPayload): Promise<User> {
+    const response = await api.patch("/users/me/profile", {
+      fullName: data.fullName,
+      email: data.email,
+      department: data.department,
+    })
+    return mapUser(response.data.data as Record<string, unknown>)
+  },
+
   async toggleUserStatus(id: string): Promise<User | undefined> {
     const user = await this.getUserById(id)
     if (!user) return undefined

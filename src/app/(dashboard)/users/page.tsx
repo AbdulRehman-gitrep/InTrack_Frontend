@@ -54,7 +54,6 @@ export default function UsersPage() {
   const [buddySheetUser, setBuddySheetUser] = useState<User | null>(null)
 
   const loadUsers = useCallback(async () => {
-    setLoading(true)
     const params: Record<string, string | number> = { page, limit }
     if (debouncedSearch) params.search = debouncedSearch
     if (roleFilter) params.role = roleFilter.toUpperCase()
@@ -67,15 +66,14 @@ export default function UsersPage() {
   }, [page, debouncedSearch, roleFilter, statusFilter])
 
   useEffect(() => {
-    loadUsers()
+    queueMicrotask(() => void loadUsers())
   }, [loadUsers])
 
   useEffect(() => {
-    setPage(1)
-  }, [debouncedSearch, roleFilter, statusFilter])
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300)
+    const timer = setTimeout(() => {
+      setPage(1)
+      setDebouncedSearch(search)
+    }, 300)
     return () => clearTimeout(timer)
   }, [search])
 
@@ -196,7 +194,10 @@ export default function UsersPage() {
 
         <select
           value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value)}
+          onChange={(e) => {
+            setPage(1)
+            setRoleFilter(e.target.value)
+          }}
           className="h-8 rounded-lg border border-input bg-transparent px-3 py-1 text-sm"
         >
           {roleOptions.map((o) => (
@@ -208,7 +209,10 @@ export default function UsersPage() {
 
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={(e) => {
+            setPage(1)
+            setStatusFilter(e.target.value)
+          }}
           className="h-8 rounded-lg border border-input bg-transparent px-3 py-1 text-sm"
         >
           {statusOptions.map((o) => (
